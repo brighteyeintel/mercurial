@@ -7,10 +7,15 @@ import L from "leaflet";
 import { useEffect, useState } from "react";
 import { Clock, ExternalLink } from "lucide-react";
 import { NavigationWarning } from "../types/NavigationWarning";
+<<<<<<< HEAD
 import { RoutePreviewData } from "../hooks/useRoutePreview";
+=======
+import { Notam } from "../types/Notam";
+import { WeatherAlert } from "../types/WeatherAlert";
+>>>>>>> 9912c1f (Weather API)
 
 // Component to handle map interactions like flying to coordinates
-const MapController = ({ selectedWarning }: { selectedWarning?: NavigationWarning | null }) => {
+const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert }: { selectedWarning?: NavigationWarning | null, selectedNotam?: Notam | null, selectedWeatherAlert?: WeatherAlert | null }) => {
     const map = useMap();
 
     useEffect(() => {
@@ -22,6 +27,24 @@ const MapController = ({ selectedWarning }: { selectedWarning?: NavigationWarnin
             });
         }
     }, [selectedWarning, map]);
+
+    useEffect(() => {
+        if (selectedNotam) {
+            map.flyTo([selectedNotam.latitude, selectedNotam.longitude], 9, { // Slightly closer zoom for NOTAMs
+                animate: true,
+                duration: 1.5
+            });
+        }
+    }, [selectedNotam, map]);
+
+    useEffect(() => {
+        if (selectedWeatherAlert && selectedWeatherAlert.lat && selectedWeatherAlert.lon) {
+            map.flyTo([selectedWeatherAlert.lat, selectedWeatherAlert.lon], 7, { // Zoom out slightly for weather
+                animate: true,
+                duration: 1.5
+            });
+        }
+    }, [selectedWeatherAlert, map]);
 
     return null;
 };
@@ -42,10 +65,18 @@ export interface TrafficEvent {
 
 export interface MapComponentProps {
     selectedWarning?: NavigationWarning | null;
+<<<<<<< HEAD
     routePreviews?: RoutePreviewData[];
 }
 
 const MapComponent = ({ selectedWarning, routePreviews = [] }: MapComponentProps) => {
+=======
+    selectedNotam?: Notam | null;
+    selectedWeatherAlert?: WeatherAlert | null;
+}
+
+const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert }: MapComponentProps) => {
+>>>>>>> 9912c1f (Weather API)
     const [events, setEvents] = useState<TrafficEvent[]>([]);
 
     const [visibleCategories, setVisibleCategories] = useState<Record<string, boolean>>({
@@ -171,6 +202,24 @@ const MapComponent = ({ selectedWarning, routePreviews = [] }: MapComponentProps
         });
     };
 
+    // Custom icon for NOTAM Points
+    const createNotamIcon = () => {
+        return L.divIcon({
+            className: "notam-marker",
+            html: `<div style="
+        background-color: #3b82f6;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 0 6px rgba(59, 130, 246, 0.6);
+      "></div>`,
+            iconSize: [12, 12],
+            iconAnchor: [6, 6],
+            popupAnchor: [0, -8],
+        });
+    };
+
     const toggleCategory = (key: string) => {
         setVisibleCategories(prev => ({
             ...prev,
@@ -235,7 +284,33 @@ const MapComponent = ({ selectedWarning, routePreviews = [] }: MapComponentProps
                     className="map-tiles-dark"
                 />
 
-                <MapController selectedWarning={selectedWarning} />
+                <MapController selectedWarning={selectedWarning} selectedNotam={selectedNotam} selectedWeatherAlert={selectedWeatherAlert} />
+
+                {/* ... existing marker ... */}
+
+                {/* ... existing events mapping ... */}
+
+                {/* ... existing warning rendering ... */}
+
+                {/* ... existing NOTAM rendering ... */}
+
+                {/* Render Selected Weather Alert */}
+                {selectedWeatherAlert && selectedWeatherAlert.coordinates && selectedWeatherAlert.coordinates.length > 0 && (
+                    <Polygon
+                        positions={selectedWeatherAlert.coordinates.map(c => [c.latitude, c.longitude])}
+                        pathOptions={{
+                            color: '#8b5cf6', // Violet
+                            fillColor: '#8b5cf6',
+                            fillOpacity: 0.3
+                        }}
+                    >
+                        <Popup>
+                            <div className="font-bold text-violet-600">{selectedWeatherAlert.event}</div>
+                            <div className="text-xs text-zinc-600">{selectedWeatherAlert.sender_name}</div>
+                            <div className="text-xs mt-1 italic">{new Date(selectedWeatherAlert.start * 1000).toLocaleString()}</div>
+                        </Popup>
+                    </Polygon>
+                )}
 
                 <Marker position={[51.505, -0.09]}>
                     <Popup>
@@ -305,6 +380,7 @@ const MapComponent = ({ selectedWarning, routePreviews = [] }: MapComponentProps
                     )
                 )}
 
+<<<<<<< HEAD
                 {/* Render Route Previews as Polylines */}
                 {routePreviews.map((preview) => (
                     <Polyline
@@ -317,6 +393,35 @@ const MapComponent = ({ selectedWarning, routePreviews = [] }: MapComponentProps
                         }}
                     />
                 ))}
+=======
+                {/* Render Selected NOTAM */}
+                {selectedNotam && (
+                    <>
+                        {/* Always render a Marker for visibility */}
+                        <Marker
+                            position={[selectedNotam.latitude, selectedNotam.longitude]}
+                            icon={createNotamIcon()}
+                        >
+                            <Popup>
+                                <div className="font-bold text-blue-500">{selectedNotam.notamCode}</div>
+                                <div className="text-xs text-zinc-600">{selectedNotam.title}</div>
+                            </Popup>
+                        </Marker>
+
+                        {/* Render Circle only if radius is specified and valid (e.g., > 0 and not just a code like 255 if that means 'point') */}
+                        {/* Assuming radius is in NM? 1 NM ~= 1852 meters. Or if the raw value is sufficient. */}
+                        {/* User requested: "Only use markers unless a radius is actually specified, in which case use a circle" */}
+                        {/* Let's render circle if radius > 0. We might need to adjust the unit if it's too small/large. */}
+                        {selectedNotam.radius && selectedNotam.radius > 0 && selectedNotam.radius !== 255 && (
+                            <Circle
+                                center={[selectedNotam.latitude, selectedNotam.longitude]}
+                                radius={selectedNotam.radius * 1852} // Assuming NM, converting to meters. If 1, ~1.8km.
+                                pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.2, dashArray: '5, 10' }}
+                            />
+                        )}
+                    </>
+                )}
+>>>>>>> 9912c1f (Weather API)
 
             </MapContainer>
 
