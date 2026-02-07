@@ -12,9 +12,9 @@ export default async function Home({ status, session }: { status: string, sessio
       <Navbar />
 
       <main className="flex-1">
-        <div className="fixed w-full h-full bg-gradient-to-b from-sky-100 to-zinc-950 [mask-image:url('/gdj-corona-virus.svg')] [mask-size:cover] [mask-position:center] opacity-50 translate-z-[-10px]"></div>
+        <div className="fixed w-full h-full  bg-gradient-to-b from-sky-100 to-zinc-950 [mask-image:url('/world-map.min.svg')] [mask-size:cover] [mask-position:center] opacity-50 translate-z-[-10px]"></div>
         {/* Hero Section */}
-        <section className="relative flex items-center justify-center overflow-hidden py-24 lg:py-32 xl:py-40 bg-gradient-to-b from-black/0 to-zinc-900/50 h-[calc(100vh-4rem)]">
+        <section className="relative flex items-center justify-center overflow-hidden py-24 lg:py-32 xl:py-40 bg-gradient-to-b from-black/0 to-zinc-900/50 h-[calc(100vh-4rem)] backdrop-blur-[1.5px]">
           <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
           <div className="container relative px-4 md:px-6 mx-auto z-30">
             <div className="flex flex-col items-center gap-6 text-center">
@@ -45,23 +45,10 @@ export default async function Home({ status, session }: { status: string, sessio
               </div>
             </div>
           </div>
-          
-          {/* Abstract Hero Visualization */}
-          {/*}
-          <div className="mt-16 flex justify-center opacity-40">
-            <div className="relative h-64 w-full max-w-5xl overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/50 md:h-96 shadow-2xl shadow-zinc-900/50">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Globe className="h-48 w-48 text-zinc-800/50 animate-pulse" strokeWidth={0.5} />
-              </div>
-              <div className="absolute top-1/4 left-1/4 h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
-              <div className="absolute top-1/2 right-1/3 h-2 w-2 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
-              <div className="absolute bottom-1/3 left-1/2 h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-            </div>
-          </div> */}
         </section>
 
-        {/* Features Grid */}
-        <section id="features" className="py-24 border-t border-zinc-900 relative bg-gradient-to-b from-zinc-900/90 via-zinc-900 to-zinc-950">
+        {/* Capabilities Grid */}
+        <section id="capabilities" className="py-24 border-t border-zinc-900 relative bg-gradient-to-b from-zinc-900/90 via-zinc-900 to-zinc-950 backdrop-blur-[3px]">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="mb-12 text-center md:text-left">
               <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl uppercase font-mono">

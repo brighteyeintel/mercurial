@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { CountUp } from 'countup.js';
 
 export default function DashboardPage() {
     const { data: session, status } = useSession();
@@ -15,6 +16,23 @@ export default function DashboardPage() {
             router.push('/');
         }
     }, [status, router]);
+
+    useEffect(() => {
+        if (status === 'authenticated') {
+            const countElements = document.querySelectorAll('[data-count-to]');
+            countElements.forEach((el) => {
+                const endVal = parseInt(el.getAttribute('data-count-to') || '0');
+                const countUp = new CountUp(el as HTMLElement, endVal, {
+                    duration: 2,
+                    useEasing: true,
+                    useGrouping: true,
+                });
+                if (!countUp.error) {
+                    countUp.start();
+                }
+            });
+        }
+    }, [status]);
 
     if (status === 'loading') {
         return (
@@ -43,6 +61,24 @@ export default function DashboardPage() {
                     <p className="mt-2 text-zinc-400">
                         Welcome to your dashboard. Manage your routes and view analytics here.
                     </p>
+                </div>
+
+                <div className="grid gap-6 grid-cols-3 justify-items-center py-5">
+                    <div className="flex flex-col items-center text-center">
+                        <div className="w-32 h-32 bg-sky-400/50 [mask-image:url('/arrows-reload-01-svgrepo-com.svg')] mask-contain mask-no-repeat mask-center mb-4"></div>
+                        <span className="text-white text-8xl font-mono" data-count-to="10">0</span>
+                        <p className="mt-4 text-zinc-400 text-xl">Routes</p>
+                    </div>
+                    <div className="flex flex-col items-center text-center">
+                        <div className="w-32 h-32 bg-red-600/50 [mask-image:url('/triangle-exclamation-svgrepo-com.svg')] mask-contain mask-no-repeat mask-center mb-4"></div>
+                        <span className="text-white text-8xl font-mono" data-count-to="5">0</span>
+                        <p className="mt-4 text-zinc-400 text-xl">Risk Events</p>
+                    </div>
+                    <div className="flex flex-col items-center text-center">
+                        <div className="w-32 h-32 bg-green-400/50 [mask-image:url('/circle-tick-svgrepo-com.svg')] mask-contain mask-no-repeat mask-center mb-4"></div>
+                        <span className="text-white text-8xl font-mono" data-count-to="20">0</span>
+                        <p className="mt-4 text-zinc-400 text-xl">Shipments Optimized</p>
+                    </div>
                 </div>
                 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
