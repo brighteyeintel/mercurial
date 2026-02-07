@@ -9,16 +9,16 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="w-full flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-          <Truck className="h-6 w-6 text-sky-400" />
-          <span className="text-xl font-bold tracking-tight text-white uppercase font-mono">Mercur<span className="text-sky-400">ial</span></span>
+          <Truck className="h-10 w-10 text-sky-400" />
+          <span className="text-3xl font-bold tracking-tight text-white uppercase font-mono">Mercur<span className="text-sky-400">ial</span></span>
         </Link>
         <nav className="hidden md:flex items-center gap-8">
-          <Link href="#features" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
+          <Link href="/#features" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
             Features
           </Link>
-          <Link href="#solutions" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
+          <Link href="/#solutions" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
             Solutions
           </Link>
           <Link href="/mercurial" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
@@ -27,6 +27,11 @@ export default function Navbar() {
           <Link href="/route-editor" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
             Route Editor
           </Link>
+          {session && (
+            <Link href="/dashboard" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
+              Dashboard
+            </Link>
+          )}
         </nav>
         <div className="flex items-center gap-4">
           {status === "loading" ? (
