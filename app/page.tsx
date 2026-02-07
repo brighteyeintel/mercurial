@@ -14,7 +14,7 @@ export default async function Home() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative flex items-center justify-center overflow-hidden py-24 lg:py-32 xl:py-40 bg-gradient-to-b from-black to-zinc-900">
-          <div className="fixed w-full h-full bg-gradient-to-b from-blue-100 to-gray-700 [mask-image:url('/gdj-corona-virus.svg')] [mask-size:cover] [mask-position:center] opacity-50 translate-z-[-10px]"></div>
+          <div className="fixed w-full h-full bg-gradient-to-b from-sky-100 to-zinc-950 [mask-image:url('/gdj-corona-virus.svg')] [mask-size:cover] [mask-position:center] opacity-50 translate-z-[-10px]"></div>
           <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
           <div className="container relative px-4 md:px-6 mx-auto z-30">
             <div className="flex flex-col items-center gap-6 text-center">
@@ -22,10 +22,10 @@ export default async function Home() {
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 mr-2"></span>
                 v1.0.0 Now Live
               </div>
-              <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl max-w-4xl text-zinc-100 bg-clip-text text-transparent uppercase font-sans text-shadow-[0_0_100px_black]">
+              <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl max-w-4xl text-zinc-100 bg-clip-text text-transparent uppercase font-sans text-shadow-[0_0_20px_black]">
                 Intelligent Logistics for a Complex World
               </h1>
-              <p className="max-w-[42rem] leading-normal text-zinc-100 sm:text-xl sm:leading-8 font-mono text-shadow-[0_0_50px_black]">
+              <p className="max-w-[42rem] leading-normal text-zinc-100 sm:text-xl sm:leading-8 font-mono text-shadow-[0_0_20px_black]">
                 Mercurial empowers logistics providers to foresee supply chain disruptions.
                 Monitor maritime, air, and road traffic in real-time. Integrate global news feeds for predictive risk analysis.
               </p>

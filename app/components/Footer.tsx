@@ -16,12 +16,12 @@ export default function Footer() {
                         <h4 className="text-sm font-medium text-zinc-100 uppercase tracking-wider">Product</h4>
                         <ul className="space-y-2 text-sm">
                             <li>
-                                <Link href="#" className="hover:text-white transition-colors">
+                                <Link href="." className="hover:text-white transition-colors">
                                     Overview
                                 </Link>
                             </li>
                             <li>
-                                <Link href="#" className="hover:text-white transition-colors">
+                                <Link href="#features" className="hover:text-white transition-colors">
                                     Features
                                 </Link>
                             </li>
