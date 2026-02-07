@@ -11,6 +11,9 @@ importers:
       '@auth0/nextjs-auth0':
         specifier: ^4.14.1
         version: 4.14.1(next@16.1.6(@babel/core@7.29.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@googlemaps/polyline-codec':
+        specifier: ^1.0.28
+        version: 1.0.28
       leaflet:
         specifier: ^1.9.4
         version: 1.9.4
@@ -201,6 +204,9 @@ packages:
   '@eslint/plugin-kit@0.4.1':
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@googlemaps/polyline-codec@1.0.28':
+    resolution: {integrity: sha512-m7rh8sbxlrHvebXEweBHX8r1uPtToPRYxWDD6p6k2YG8hyhBe0Wi6xRUVFpxpEseMNgF+OBotFQC5senj8K7TQ==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -2334,6 +2340,8 @@ snapshots:
     dependencies:
       '@eslint/core': 0.17.0
       levn: 0.4.1
+
+  '@googlemaps/polyline-codec@1.0.28': {}
 
   '@humanfs/core@0.19.1': {}
 

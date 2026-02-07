@@ -6,6 +6,7 @@ import { Globe, AlertTriangle, ChevronLeft } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { NavigationWarning } from '../types/NavigationWarning';
 import ShippingRoutePanel from './ShippingRoutePanel';
+import { useRoutePreview } from '../hooks/useRoutePreview';
 
 const MapWrapper = dynamic(() => import('../components/MapWrapper'), {
     ssr: false,
@@ -22,6 +23,9 @@ export default function RouteEditorPage() {
     // Filter State
     const [availableAreas, setAvailableAreas] = useState<string[]>([]);
     const [selectedAreas, setSelectedAreas] = useState<Record<string, boolean>>({});
+
+    // Route Preview State
+    const routePreviewHook = useRoutePreview();
 
     // Helper to parse NGA Date Format: 301809Z JAN 26 (DDHHMMZ MMM YY)
     const parseWarningDate = (dateStr: string): Date => {
@@ -101,7 +105,7 @@ export default function RouteEditorPage() {
             <div className="flex flex-1 overflow-hidden relative">
                 {/* Map Panel (Left) */}
                 <div className="flex-1 relative bg-zinc-900 border-r border-zinc-800">
-                    <MapWrapper selectedWarning={selectedWarning} />
+                    <MapWrapper selectedWarning={selectedWarning} routePreviews={routePreviewHook.routePreviews} />
 
                     {/* Overlay Title for Map Context */}
                     <div className="absolute top-4 left-14 z-[500] bg-zinc-900/90 backdrop-blur-md border border-zinc-700 rounded-lg px-4 py-2 shadow-xl pointer-events-none">
@@ -200,7 +204,11 @@ export default function RouteEditorPage() {
                 </div>
 
                 {/* Shipping Route Panel (Right) */}
-                <ShippingRoutePanel />
+                <ShippingRoutePanel
+                    fetchRoutePreview={routePreviewHook.fetchRoutePreview}
+                    clearRoutePreview={routePreviewHook.clearRoutePreview}
+                    isLoadingPreview={routePreviewHook.isLoading}
+                />
             </div>
         </div>
     );

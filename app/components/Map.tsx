@@ -1,12 +1,13 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup, Circle, Polygon, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polygon, Polyline, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 // Fix for missing marker icons in leaflet production bundle
 import L from "leaflet";
 import { useEffect, useState } from "react";
 import { Clock, ExternalLink } from "lucide-react";
 import { NavigationWarning } from "../types/NavigationWarning";
+import { RoutePreviewData } from "../hooks/useRoutePreview";
 
 // Component to handle map interactions like flying to coordinates
 const MapController = ({ selectedWarning }: { selectedWarning?: NavigationWarning | null }) => {
@@ -41,9 +42,10 @@ export interface TrafficEvent {
 
 export interface MapComponentProps {
     selectedWarning?: NavigationWarning | null;
+    routePreviews?: RoutePreviewData[];
 }
 
-const MapComponent = ({ selectedWarning }: MapComponentProps) => {
+const MapComponent = ({ selectedWarning, routePreviews = [] }: MapComponentProps) => {
     const [events, setEvents] = useState<TrafficEvent[]>([]);
 
     const [visibleCategories, setVisibleCategories] = useState<Record<string, boolean>>({
@@ -302,6 +304,19 @@ const MapComponent = ({ selectedWarning }: MapComponentProps) => {
                         ))
                     )
                 )}
+
+                {/* Render Route Previews as Polylines */}
+                {routePreviews.map((preview) => (
+                    <Polyline
+                        key={`route-preview-${preview.stageIndex}`}
+                        positions={preview.coordinates}
+                        pathOptions={{
+                            color: "#10b981", // Emerald color
+                            weight: 4,
+                            opacity: 0.8,
+                        }}
+                    />
+                ))}
 
             </MapContainer>
 
