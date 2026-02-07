@@ -1,0 +1,96 @@
+[
+  {
+    "goods_type": "pharmaceuticals",
+    "stages": [
+      {
+        "transport": {
+          "source": "Basel, CH",
+          "destination": "Frankfurt Airport (FRA), DE",
+          "mode": "road",
+          "courier": "DHL Freight",
+          "additional": "Reefer truck set to 2-8C"
+        }
+      },
+      {
+        "holding": {
+          "location": "Frankfurt Airport (FRA), DE",
+          "duration": "6h",
+          "additional": "Cold chain storage"
+        }
+      },
+      {
+        "transport": {
+          "source": "Frankfurt Airport (FRA), DE",
+          "destination": "JFK Airport (JFK), US",
+          "mode": "flight",
+          "courier": "Lufthansa Cargo",
+          "additional": "ULD temp-controlled container"
+        }
+      },
+      {
+        "transport": {
+          "source": "JFK Airport (JFK), US",
+          "destination": "Newark, NJ, US",
+          "mode": "road",
+          "courier": "UPS",
+          "additional": "Last-mile refrigerated delivery"
+        }
+      }
+    ]
+  },
+  {
+    "goods_type": "electronics",
+    "stages": [
+      {
+        "transport": {
+          "source": "Shenzhen, CN",
+          "destination": "Yantian Port, CN",
+          "mode": "road",
+          "courier": "SF Express",
+          "additional": "Palletized, sealed"
+        }
+      },
+      {
+        "holding": {
+          "location": "Yantian Port, CN",
+          "duration": "2d",
+          "additional": "Awaiting vessel departure"
+        }
+      },
+      {
+        "transport": {
+          "source": "Yantian Port, CN",
+          "destination": "Port of Rotterdam, NL",
+          "mode": "sea",
+          "courier": "Maersk",
+          "additional": "40ft container (FCL)"
+        }
+      },
+      {
+        "holding": {
+          "location": "Port of Rotterdam, NL",
+          "duration": "12h",
+          "additional": "Customs inspection"
+        }
+      },
+      {
+        "transport": {
+          "source": "Port of Rotterdam, NL",
+          "destination": "Duisburg, DE",
+          "mode": "rail",
+          "courier": "DB Cargo",
+          "additional": "Intermodal rail to inland terminal"
+        }
+      },
+      {
+        "transport": {
+          "source": "Duisburg, DE",
+          "destination": "Cologne, DE",
+          "mode": "road",
+          "courier": "GLS",
+          "additional": "Final delivery"
+        }
+      }
+    ]
+  }
+]
