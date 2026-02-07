@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { RouteData, Stage, TransportMode, Transport, Holding } from "../types/routeData";
+import { ShippingRouteData, Stage, TransportMode, Transport, Holding } from "../types/ShippingRouteData";
 import { Plus, Trash2, Save, ArrowLeft, Box, Clock, Globe } from "lucide-react";
 import Link from "next/link";
 import MapWrapper from "../components/MapWrapper";
@@ -27,6 +27,9 @@ const getEmptyHolding = (): Holding => ({
 export default function RouteEditorPage() {
     const [goodsType, setGoodsType] = useState("");
     const [stages, setStages] = useState<Stage[]>([]);
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const [savedRouteId, setSavedRouteId] = useState<string | null>(null);
 
     const addStage = () => {
         setStages([...stages, { transport: getEmptyTransport() }]);
@@ -68,8 +71,8 @@ export default function RouteEditorPage() {
         }
     };
 
-    // Generate the RouteData object for logging/saving (not previewed anymore)
-    const routeData = new RouteData(goodsType, stages);
+    // Generate the ShippingRouteData object for logging/saving (not previewed anymore)
+    const routeData = new ShippingRouteData(goodsType, stages);
 
     return (
         <div className="flex h-screen flex-col bg-black text-white selection:bg-zinc-800 selection:text-zinc-100 overflow-hidden">
@@ -101,9 +104,31 @@ export default function RouteEditorPage() {
                         </div>
                         <button
                             className="inline-flex items-center justify-center rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-emerald-500 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 uppercase tracking-wider"
-                            onClick={() => {
-                                console.log("Saving:", routeData);
-                                alert("Route Data logged to console!");
+                            disabled={isSaving}
+                            onClick={async () => {
+                                setIsSaving(true);
+                                setSaveError(null);
+                                setSavedRouteId(null);
+
+                                try {
+                                    const res = await fetch('/api/shippingroutes', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify(routeData.toJSON()),
+                                    });
+
+                                    const data = await res.json().catch(() => ({}));
+                                    if (!res.ok) {
+                                        throw new Error((data as any)?.error || 'Failed to save route');
+                                    }
+
+                                    const id = (data as any)?.route?._id;
+                                    setSavedRouteId(typeof id === 'string' ? id : JSON.stringify(id));
+                                } catch (e) {
+                                    setSaveError(e instanceof Error ? e.message : 'Failed to save route');
+                                } finally {
+                                    setIsSaving(false);
+                                }
                             }}
                         >
                             <Save className="mr-1.5 h-3.5 w-3.5" />
@@ -114,6 +139,18 @@ export default function RouteEditorPage() {
                     {/* Scrollable Form Area */}
                     <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                         <div className="space-y-6">
+
+                            {saveError && (
+                                <div className="rounded-lg border border-red-900/40 bg-red-950/20 px-4 py-3 text-sm text-red-200">
+                                    {saveError}
+                                </div>
+                            )}
+
+                            {savedRouteId && (
+                                <div className="rounded-lg border border-emerald-900/40 bg-emerald-950/20 px-4 py-3 text-sm text-emerald-200">
+                                    Saved route: {savedRouteId}
+                                </div>
+                            )}
 
                             {/* Goods Type Section */}
                             <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
