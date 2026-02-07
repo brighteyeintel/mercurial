@@ -5,14 +5,26 @@ import { TransportMode } from '../types/ShippingRouteData';
 
 export interface ShippingRouteRecord {
   _id: mongoose.Types.ObjectId;
+  user_email: string;
+  name: string;
   goods_type: string;
   stages: Stage[];
 }
 
 const TransportSchema = new mongoose.Schema(
   {
-    source: { type: String, required: true },
-    destination: { type: String, required: true },
+    source: {
+      name: { type: String, required: true },
+      latitude: { type: Number, required: true },
+      longitude: { type: Number, required: true },
+      code: { type: String, required: false }
+    },
+    destination: {
+      name: { type: String, required: true },
+      latitude: { type: Number, required: true },
+      longitude: { type: Number, required: true },
+      code: { type: String, required: false }
+    },
     mode: { type: String, required: true, enum: Object.values(TransportMode) },
     courier: { type: String, required: false },
     additional: { type: String, required: false },
@@ -45,6 +57,8 @@ StageSchema.path('transport').validate(function (this: any) {
 
 const RouteSchema = new mongoose.Schema(
   {
+    user_email: { type: String, required: true, index: true },
+    name: { type: String, required: true },
     goods_type: { type: String, required: true },
     stages: { type: [StageSchema], default: [] },
   },
@@ -56,8 +70,18 @@ export const ShippingRouteModel: Model<ShippingRouteRecord> =
 
 // Helpers
 
-export async function createShippingRoute(data: { goods_type: string; stages?: ShippingRouteRecord['stages'] }): Promise<ShippingRouteRecord> {
-  const route = new ShippingRouteModel({ goods_type: data.goods_type, stages: data.stages ?? [] });
+export async function createShippingRoute(data: {
+  user_email: string;
+  name: string;
+  goods_type: string;
+  stages?: ShippingRouteRecord['stages'];
+}): Promise<ShippingRouteRecord> {
+  const route = new ShippingRouteModel({
+    user_email: data.user_email,
+    name: data.name,
+    goods_type: data.goods_type,
+    stages: data.stages ?? [],
+  });
   await route.save();
   return route;
 }

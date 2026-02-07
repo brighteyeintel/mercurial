@@ -7,7 +7,6 @@ export async function dbConnect() {
   if (!MONGODB_URI) {
     throw new Error('Please define the MONGODB_URI environment variable');
   }
-  // await mongoose.connect(MONGODB_URI, { dbName: MONGODB_DB_NAME });
-  // return mongoose;
-  return null;
+  await mongoose.connect(MONGODB_URI, { dbName: MONGODB_DB_NAME });
+  return mongoose;
 }
