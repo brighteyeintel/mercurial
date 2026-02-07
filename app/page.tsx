@@ -5,7 +5,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { Anchor, Plane, Truck, Newspaper, ShieldAlert, Globe, Activity, ArrowRight } from "lucide-react";
 
-export default async function Home() {
+export default async function Home({ status, session }: { status: string, session: any }) {
 
   return (
     <div className="flex min-h-screen flex-col bg-black text-white selection:bg-zinc-800 selection:text-zinc-100">
