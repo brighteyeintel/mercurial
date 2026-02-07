@@ -7,12 +7,9 @@ import L from "leaflet";
 import { useEffect, useState } from "react";
 import { Clock, ExternalLink } from "lucide-react";
 import { NavigationWarning } from "../types/NavigationWarning";
-<<<<<<< HEAD
 import { RoutePreviewData } from "../hooks/useRoutePreview";
-=======
 import { Notam } from "../types/Notam";
 import { WeatherAlert } from "../types/WeatherAlert";
->>>>>>> 9912c1f (Weather API)
 
 // Component to handle map interactions like flying to coordinates
 const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert }: { selectedWarning?: NavigationWarning | null, selectedNotam?: Notam | null, selectedWeatherAlert?: WeatherAlert | null }) => {
@@ -65,18 +62,12 @@ export interface TrafficEvent {
 
 export interface MapComponentProps {
     selectedWarning?: NavigationWarning | null;
-<<<<<<< HEAD
+    selectedNotam?: Notam | null;
+    selectedWeatherAlert?: WeatherAlert | null;
     routePreviews?: RoutePreviewData[];
 }
 
-const MapComponent = ({ selectedWarning, routePreviews = [] }: MapComponentProps) => {
-=======
-    selectedNotam?: Notam | null;
-    selectedWeatherAlert?: WeatherAlert | null;
-}
-
-const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert }: MapComponentProps) => {
->>>>>>> 9912c1f (Weather API)
+const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert, routePreviews = [] }: MapComponentProps) => {
     const [events, setEvents] = useState<TrafficEvent[]>([]);
 
     const [visibleCategories, setVisibleCategories] = useState<Record<string, boolean>>({
@@ -286,14 +277,6 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert }: 
 
                 <MapController selectedWarning={selectedWarning} selectedNotam={selectedNotam} selectedWeatherAlert={selectedWeatherAlert} />
 
-                {/* ... existing marker ... */}
-
-                {/* ... existing events mapping ... */}
-
-                {/* ... existing warning rendering ... */}
-
-                {/* ... existing NOTAM rendering ... */}
-
                 {/* Render Selected Weather Alert */}
                 {selectedWeatherAlert && selectedWeatherAlert.coordinates && selectedWeatherAlert.coordinates.length > 0 && (
                     <Polygon
@@ -380,7 +363,6 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert }: 
                     )
                 )}
 
-<<<<<<< HEAD
                 {/* Render Route Previews as Polylines */}
                 {routePreviews.map((preview) => (
                     <Polyline
@@ -393,7 +375,7 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert }: 
                         }}
                     />
                 ))}
-=======
+
                 {/* Render Selected NOTAM */}
                 {selectedNotam && (
                     <>
@@ -408,10 +390,7 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert }: 
                             </Popup>
                         </Marker>
 
-                        {/* Render Circle only if radius is specified and valid (e.g., > 0 and not just a code like 255 if that means 'point') */}
-                        {/* Assuming radius is in NM? 1 NM ~= 1852 meters. Or if the raw value is sufficient. */}
-                        {/* User requested: "Only use markers unless a radius is actually specified, in which case use a circle" */}
-                        {/* Let's render circle if radius > 0. We might need to adjust the unit if it's too small/large. */}
+                        {/* Render Circle only if radius is specified and valid */}
                         {selectedNotam.radius && selectedNotam.radius > 0 && selectedNotam.radius !== 255 && (
                             <Circle
                                 center={[selectedNotam.latitude, selectedNotam.longitude]}
@@ -421,7 +400,6 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert }: 
                         )}
                     </>
                 )}
->>>>>>> 9912c1f (Weather API)
 
             </MapContainer>
 

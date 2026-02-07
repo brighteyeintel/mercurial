@@ -17,19 +17,12 @@ import { WeatherAlert } from '../types/WeatherAlert';
 
 interface MapWrapperProps {
     selectedWarning?: NavigationWarning | null;
-<<<<<<< HEAD
+    selectedNotam?: Notam | null;
+    selectedWeatherAlert?: WeatherAlert | null;
     routePreviews?: RoutePreviewData[];
 }
 
-export default function MapWrapper({ selectedWarning, routePreviews = [] }: MapWrapperProps) {
-    return <Map selectedWarning={selectedWarning} routePreviews={routePreviews} />;
-=======
-    selectedNotam?: Notam | null;
-    selectedWeatherAlert?: WeatherAlert | null;
-}
-
-export default function MapWrapper({ selectedWarning, selectedNotam, selectedWeatherAlert }: MapWrapperProps) {
-    return <Map selectedWarning={selectedWarning} selectedNotam={selectedNotam} selectedWeatherAlert={selectedWeatherAlert} />;
->>>>>>> 9912c1f (Weather API)
+export default function MapWrapper({ selectedWarning, selectedNotam, selectedWeatherAlert, routePreviews = [] }: MapWrapperProps) {
+    return <Map selectedWarning={selectedWarning} selectedNotam={selectedNotam} selectedWeatherAlert={selectedWeatherAlert} routePreviews={routePreviews} />;
 }
 
