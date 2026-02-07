@@ -52,6 +52,7 @@ export default function ShippingRoutePanel({
     const [savedRouteId, setSavedRouteId] = useState<string | null>(null);
     const [routes, setRoutes] = useState<Array<{ _id: string; name: string }>>([]);
     const [isLoadingRoutes, setIsLoadingRoutes] = useState(false);
+    const [airports, setAirports] = useState<any[]>([]);
 
     const { data: session, status } = useSession()
 
@@ -121,6 +122,17 @@ export default function ShippingRoutePanel({
         fetchRoutes();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [status, session]);
+
+    useEffect(() => {
+        fetch('/api/aviation/airports')
+            .then(res => res.json())
+            .then(data => {
+                if (data.airports) {
+                    setAirports(data.airports);
+                }
+            })
+            .catch(err => console.error("Failed to fetch airports", err));
+    }, []);
 
     const loadRouteForEdit = async (id: string) => {
         if (status === "loading") {
@@ -212,6 +224,32 @@ export default function ShippingRoutePanel({
             };
             setStages(newStages);
         }
+    };
+
+    const onAirportSelect = (index: number, type: 'source' | 'destination', code: string) => {
+        const newStages = [...stages];
+        const stage = newStages[index];
+        if (!stage.transport) return;
+
+        // Case-insensitive check for airport
+        const airport = airports.find(a => a.icao.toUpperCase() === code.toUpperCase() || a.iata?.toUpperCase() === code.toUpperCase());
+
+        newStages[index] = {
+            transport: {
+                ...stage.transport,
+                [type]: {
+                    ...stage.transport[type],
+                    code: code, // Always update the code even if not a full match yet
+                    ...(airport ? {
+                        name: airport.name,
+                        latitude: airport.latitude,
+                        longitude: airport.longitude,
+                        code: airport.icao // Use formal ICAO if matched
+                    } : {})
+                }
+            } as Transport
+        };
+        setStages(newStages);
     };
 
     const onRouteSave = async () => {
@@ -538,78 +576,126 @@ export default function ShippingRoutePanel({
 
                                                 <div className="grid gap-3 p-3 border border-zinc-800 rounded bg-zinc-900/20">
                                                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Origin</label>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div className="col-span-2">
+                                                    {stage.transport.mode === TransportMode.Flight && (
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-medium text-zinc-500 uppercase">Airport Search</label>
                                                             <input
-                                                                type="text"
+                                                                list={`airports-origin-${index}`}
                                                                 className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                                                                placeholder="Location Name"
-                                                                value={stage.transport.source.name}
-                                                                onChange={(e) => updateTransportLocation(index, 'source', 'name', e.target.value)}
-                                                            />
-                                                        </div>
-                                                        <input
-                                                            type="number"
-                                                            className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                            placeholder="Lat"
-                                                            value={stage.transport.source.latitude || ''}
-                                                            onChange={(e) => updateTransportLocation(index, 'source', 'latitude', parseFloat(e.target.value) || 0)}
-                                                        />
-                                                        <input
-                                                            type="number"
-                                                            className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                            placeholder="Long"
-                                                            value={stage.transport.source.longitude || ''}
-                                                            onChange={(e) => updateTransportLocation(index, 'source', 'longitude', parseFloat(e.target.value) || 0)}
-                                                        />
-                                                        <div className="col-span-2">
-                                                            <input
-                                                                type="text"
-                                                                className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                                                                placeholder="Location Code (Optional)"
+                                                                placeholder="Search Airport (ICAO)..."
+                                                                onChange={(e) => onAirportSelect(index, 'source', e.target.value)}
                                                                 value={stage.transport.source.code || ''}
-                                                                onChange={(e) => updateTransportLocation(index, 'source', 'code', e.target.value)}
                                                             />
+                                                            {stage.transport.source.name && (
+                                                                <div className="text-[10px] text-emerald-400 font-medium px-1 truncate">
+                                                                    {stage.transport.source.name}
+                                                                </div>
+                                                            )}
+                                                            <datalist id={`airports-origin-${index}`}>
+                                                                {airports.map(a => (
+                                                                    <option key={a.icao} value={a.icao}>{a.name} ({a.city}, {a.country})</option>
+                                                                ))}
+                                                            </datalist>
                                                         </div>
-                                                    </div>
+                                                    )}
+                                                    {stage.transport.mode !== TransportMode.Flight && (
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <div className="col-span-2">
+                                                                <input
+                                                                    type="text"
+                                                                    className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                                                                    placeholder="Location Name"
+                                                                    value={stage.transport.source.name}
+                                                                    onChange={(e) => updateTransportLocation(index, 'source', 'name', e.target.value)}
+                                                                />
+                                                            </div>
+                                                            <input
+                                                                type="number"
+                                                                className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                placeholder="Lat"
+                                                                value={stage.transport.source.latitude || ''}
+                                                                onChange={(e) => updateTransportLocation(index, 'source', 'latitude', parseFloat(e.target.value) || 0)}
+                                                            />
+                                                            <input
+                                                                type="number"
+                                                                className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                placeholder="Long"
+                                                                value={stage.transport.source.longitude || ''}
+                                                                onChange={(e) => updateTransportLocation(index, 'source', 'longitude', parseFloat(e.target.value) || 0)}
+                                                            />
+                                                            <div className="col-span-2">
+                                                                <input
+                                                                    type="text"
+                                                                    className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                                                                    placeholder="Location Code (Optional)"
+                                                                    value={stage.transport.source.code || ''}
+                                                                    onChange={(e) => updateTransportLocation(index, 'source', 'code', e.target.value)}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className="grid gap-3 p-3 border border-zinc-800 rounded bg-zinc-900/20">
                                                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Destination</label>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div className="col-span-2">
+                                                    {stage.transport.mode === TransportMode.Flight && (
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-medium text-zinc-500 uppercase">Airport Search</label>
                                                             <input
-                                                                type="text"
+                                                                list={`airports-dest-${index}`}
                                                                 className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                                                                placeholder="Location Name"
-                                                                value={stage.transport.destination.name}
-                                                                onChange={(e) => updateTransportLocation(index, 'destination', 'name', e.target.value)}
-                                                            />
-                                                        </div>
-                                                        <input
-                                                            type="number"
-                                                            className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                            placeholder="Lat"
-                                                            value={stage.transport.destination.latitude || ''}
-                                                            onChange={(e) => updateTransportLocation(index, 'destination', 'latitude', parseFloat(e.target.value) || 0)}
-                                                        />
-                                                        <input
-                                                            type="number"
-                                                            className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                            placeholder="Long"
-                                                            value={stage.transport.destination.longitude || ''}
-                                                            onChange={(e) => updateTransportLocation(index, 'destination', 'longitude', parseFloat(e.target.value) || 0)}
-                                                        />
-                                                        <div className="col-span-2">
-                                                            <input
-                                                                type="text"
-                                                                className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                                                                placeholder="Location Code (Optional)"
+                                                                placeholder="Search Airport (ICAO)..."
+                                                                onChange={(e) => onAirportSelect(index, 'destination', e.target.value)}
                                                                 value={stage.transport.destination.code || ''}
-                                                                onChange={(e) => updateTransportLocation(index, 'destination', 'code', e.target.value)}
                                                             />
+                                                            {stage.transport.destination.name && (
+                                                                <div className="text-[10px] text-emerald-400 font-medium px-1 truncate">
+                                                                    {stage.transport.destination.name}
+                                                                </div>
+                                                            )}
+                                                            <datalist id={`airports-dest-${index}`}>
+                                                                {airports.map(a => (
+                                                                    <option key={a.icao} value={a.icao}>{a.name} ({a.city}, {a.country})</option>
+                                                                ))}
+                                                            </datalist>
                                                         </div>
-                                                    </div>
+                                                    )}
+                                                    {stage.transport.mode !== TransportMode.Flight && (
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <div className="col-span-2">
+                                                                <input
+                                                                    type="text"
+                                                                    className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                                                                    placeholder="Location Name"
+                                                                    value={stage.transport.destination.name}
+                                                                    onChange={(e) => updateTransportLocation(index, 'destination', 'name', e.target.value)}
+                                                                />
+                                                            </div>
+                                                            <input
+                                                                type="number"
+                                                                className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                placeholder="Lat"
+                                                                value={stage.transport.destination.latitude || ''}
+                                                                onChange={(e) => updateTransportLocation(index, 'destination', 'latitude', parseFloat(e.target.value) || 0)}
+                                                            />
+                                                            <input
+                                                                type="number"
+                                                                className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                placeholder="Long"
+                                                                value={stage.transport.destination.longitude || ''}
+                                                                onChange={(e) => updateTransportLocation(index, 'destination', 'longitude', parseFloat(e.target.value) || 0)}
+                                                            />
+                                                            <div className="col-span-2">
+                                                                <input
+                                                                    type="text"
+                                                                    className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                                                                    placeholder="Location Code (Optional)"
+                                                                    value={stage.transport.destination.code || ''}
+                                                                    onChange={(e) => updateTransportLocation(index, 'destination', 'code', e.target.value)}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className="space-y-1">
