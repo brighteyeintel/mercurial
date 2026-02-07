@@ -37,7 +37,7 @@ export default function RouteEditorPage() {
     const [selectedAreas, setSelectedAreas] = useState<Record<string, boolean>>({});
 
     // Route Preview Hook
-    const { routePreviews, fetchRoutePreview, clearRoutePreview, isLoading } = useRoutePreview();
+    const routePreviewHook = useRoutePreview();
 
     // Helper to parse NGA Date Format: 301809Z JAN 26 (DDHHMMZ MMM YY)
     const parseWarningDate = (dateStr: string): Date => {
@@ -151,7 +151,7 @@ export default function RouteEditorPage() {
                         selectedWarning={selectedWarning}
                         selectedNotam={selectedNotam}
                         selectedWeatherAlert={selectedWeatherAlert}
-                        routePreviews={routePreviews}
+                        routePreviews={routePreviewHook.routePreviews}
                     />
 
                     {/* Overlay Title for Map Context */}
@@ -363,9 +363,9 @@ export default function RouteEditorPage() {
 
                 {/* Shipping Route Panel (Right) */}
                 <ShippingRoutePanel
-                    fetchRoutePreview={fetchRoutePreview}
-                    clearRoutePreview={clearRoutePreview}
-                    isLoadingPreview={isLoading}
+                    fetchAllRoutePreviews={routePreviewHook.fetchAllRoutePreviews}
+                    clearAllPreviews={routePreviewHook.clearAllPreviews}
+                    isLoadingAll={routePreviewHook.isLoadingAll}
                 />
             </div>
         </div>
