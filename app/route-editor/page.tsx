@@ -3,10 +3,14 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { Plus, Trash2, Save, ArrowLeft, Box, Clock, Globe } from "lucide-react";
-import Link from "next/link";
 import MapWrapper from "../components/MapWrapper";
 import ShippingRoutePanel from "./ShippingRoutePanel";
+import dynamic from 'next/dynamic';
+
+const MapWrapper = dynamic(() => import('../components/MapWrapper'), {
+    ssr: false,
+    loading: () => <div className="h-[calc(100vh-64px)] w-full bg-zinc-900 flex items-center justify-center text-zinc-500">Loading Map Wrapper...</div>
+});
 
 export default function RouteEditorPage() {
     return (
