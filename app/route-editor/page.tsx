@@ -6,8 +6,13 @@ import Footer from "../components/Footer";
 import { ShippingRouteData, Stage, TransportMode, Transport, Holding, Location } from "../types/ShippingRouteData";
 import { Plus, Trash2, Save, ArrowLeft, Box, Clock, Globe } from "lucide-react";
 import Link from "next/link";
-import MapWrapper from "../components/MapWrapper";
 import { useSession } from "next-auth/react"
+import dynamic from 'next/dynamic';
+
+const MapWrapper = dynamic(() => import('../components/MapWrapper'), {
+    ssr: false,
+    loading: () => <div className="h-[calc(100vh-64px)] w-full bg-zinc-900 flex items-center justify-center text-zinc-500">Loading Map Wrapper...</div>
+});
 
 // Helper to get initial empty location
 const getEmptyLocation = (): Location => ({
