@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react"
 import { ShippingRouteData, Stage, TransportMode, Transport, Holding, Location } from "../types/ShippingRouteData";
-import { Plus, Trash2, Save, ArrowLeft, Box, Clock, Globe } from "lucide-react";
+import { Plus, Trash2, Save, ArrowLeft, Box, Clock, Globe, Check, X } from "lucide-react";
 import Link from "next/link";
 
 // Helper to get initial empty location
@@ -43,6 +43,7 @@ export default function ShippingRoutePanel({
 }: ShippingRoutePanelProps) {
     const [view, setView] = useState<'list' | 'edit'>('list');
     const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
+    const [routeIdPendingDelete, setRouteIdPendingDelete] = useState<string | null>(null);
     const [routeName, setRouteName] = useState("");
     const [goodsType, setGoodsType] = useState("");
     const [stages, setStages] = useState<Stage[]>([]);
@@ -81,6 +82,37 @@ export default function ShippingRoutePanel({
             setRoutes([]);
         } finally {
             setIsLoadingRoutes(false);
+        }
+    };
+
+    const deleteRoute = async (id: string) => {
+        if (status === "loading") {
+            return;
+        }
+
+        if (!session) {
+            return;
+        }
+
+        setIsSaving(true);
+        setSaveError(null);
+        setSavedRouteId(null);
+        try {
+            const res = await fetch(`/api/shippingroutes/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error((data as any)?.error || 'Failed to delete route');
+            }
+
+            if (selectedRouteId === id) {
+                setSelectedRouteId(null);
+            }
+            setRouteIdPendingDelete(null);
+            await fetchRoutes();
+        } catch (e) {
+            setSaveError(e instanceof Error ? e.message : 'Failed to delete route');
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -235,7 +267,7 @@ export default function ShippingRoutePanel({
                 </div>
                 {view === 'list' ? (
                     <button
-                        className="inline-flex items-center justify-center rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-emerald-500 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="inline-flex items-center justify-center rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-emerald-500 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
                         onClick={() => {
                             setSelectedRouteId(null);
                             setRouteName('');
@@ -252,14 +284,14 @@ export default function ShippingRoutePanel({
                 ) : (
                     <div className="flex items-center gap-2">
                         <button
-                            className="inline-flex items-center justify-center rounded border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs font-bold text-zinc-200 shadow hover:bg-zinc-900 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-700 uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="inline-flex items-center justify-center rounded border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs font-bold text-zinc-200 shadow hover:bg-zinc-900 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-700 uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
                             disabled={isSaving}
                             onClick={() => setView('list')}
                         >
                             Back
                         </button>
                         <button
-                            className="inline-flex items-center justify-center rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-emerald-500 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="inline-flex items-center justify-center rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-emerald-500 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
                             disabled={isSaving}
                             onClick={onRouteSave}
                         >
@@ -277,7 +309,7 @@ export default function ShippingRoutePanel({
                     {saveError && (
                         <div className="rounded-lg border border-red-900/40 bg-red-950/20 px-4 py-3 text-sm text-red-200">
                             {saveError}
-                        </div>
+                        </div>  
                     )}
 
                     {savedRouteId && (
@@ -293,7 +325,7 @@ export default function ShippingRoutePanel({
                                     Routes
                                 </h2>
                                 <button
-                                    className="text-xs text-zinc-400 px-2 py-1 rounded bg-zinc-900 border border-zinc-800 hover:text-zinc-200"
+                                    className="text-xs text-zinc-400 px-2 py-1 rounded bg-zinc-900 border border-zinc-800 hover:text-zinc-200 hover:cursor-pointer"
                                     disabled={isLoadingRoutes}
                                     onClick={fetchRoutes}
                                 >
@@ -313,14 +345,62 @@ export default function ShippingRoutePanel({
                                 ) : (
                                     <div className="divide-y divide-zinc-800">
                                         {routes.map((r: { _id: string; name: string }) => (
-                                            <button
+                                            <div
                                                 key={r._id}
-                                                className={`w-full text-left p-3 text-sm text-zinc-200 hover:bg-zinc-900/40 transition-colors hover:cursor-pointer` + (isSaving ? ' bg-zinc-900/40 hover:cursor-progress' : '')}
-                                                disabled={isSaving}
-                                                onClick={() => loadRouteForEdit(r._id)}
+                                                className={`flex items-center justify-between gap-2 p-3 text-sm text-zinc-200 transition-colors ${
+                                                    isSaving ? 'bg-zinc-900/40' : 'hover:bg-zinc-900/40'
+                                                }`}
                                             >
-                                                {r.name}
-                                            </button>
+                                                <button
+                                                    className={`flex-1 text-left hover:cursor-pointer ${isSaving ? 'hover:cursor-progress' : ''}`}
+                                                    disabled={isSaving}
+                                                    onClick={() => loadRouteForEdit(r._id)}
+                                                >
+                                                    {r.name}
+                                                </button>
+
+                                                {routeIdPendingDelete === r._id ? (
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            className="p-1.5 rounded hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 hover:cursor-pointer"
+                                                            disabled={isSaving}
+                                                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                deleteRoute(r._id);
+                                                            }}
+                                                            title="Confirm delete"
+                                                        >
+                                                            <Check className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            className="p-1.5 rounded hover:bg-red-500/10 text-red-400 hover:text-red-300 hover:cursor-pointer"
+                                                            disabled={isSaving}
+                                                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                setRouteIdPendingDelete(null);
+                                                            }}
+                                                            title="Cancel"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        className="p-1.5 rounded hover:bg-zinc-800 text-zinc-500 hover:text-zinc-200 hover:cursor-pointer"
+                                                        disabled={isSaving}
+                                                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setRouteIdPendingDelete(r._id);
+                                                        }}
+                                                        title="Delete route"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         ))}
                                     </div>
                                 )}

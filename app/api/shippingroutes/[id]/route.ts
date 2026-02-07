@@ -82,3 +82,26 @@ export async function PUT(request: Request, { params }: Params) {
 
     return Response.json({ route: updated });
 }
+
+export async function DELETE(_request: Request, { params }: Params) {
+    const session = await getServerSession(authOptions);
+    const email = session?.user?.email;
+    if (!email) {
+        return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await dbConnect();
+
+    const resolvedParams = await Promise.resolve(params);
+    const id = String(resolvedParams?.id ?? '').trim();
+    if (!id) {
+        return Response.json({ error: 'id is required' }, { status: 400 });
+    }
+
+    const deleted = await ShippingRouteModel.findOneAndDelete({ _id: id, user_email: email }).lean();
+    if (!deleted) {
+        return Response.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    return Response.json({ ok: true });
+}
