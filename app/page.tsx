@@ -12,8 +12,8 @@ export default function Home() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative flex items-center justify-center overflow-hidden py-24 lg:py-32 xl:py-40 z-30">
-          <div className="absolute z-10 w-full h-full bg-blue-800 [mask-image:url('/gdj-corona-virus.svg')] [mask-size:cover] [mask-position:center] [-webkit-mask-image:url('/gdj-corona-virus.svg')] [-webkit-mask-size:cover] [-webkit-mask-position:center] opacity-50"></div>
+        <section className="relative flex items-center justify-center overflow-hidden py-24 lg:py-32 xl:py-40 bg-gradient-to-b from-black to-zinc-900">
+          <div className="fixed w-full h-full bg-gradient-to-b from-blue-100 to-gray-700 [mask-image:url('/gdj-corona-virus.svg')] [mask-size:cover] [mask-position:center] opacity-50 translate-z-[-10px]"></div>
           <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
           <div className="container relative px-4 md:px-6 mx-auto z-30">
             <div className="flex flex-col items-center gap-6 text-center">
@@ -21,10 +21,10 @@ export default function Home() {
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 mr-2"></span>
                 v1.0.0 Now Live
               </div>
-              <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl max-w-4xl bg-gradient-to-b from-white to-zinc-500 bg-clip-text text-transparent uppercase font-sans">
+              <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl max-w-4xl text-zinc-100 bg-clip-text text-transparent uppercase font-sans text-shadow-[0_0_100px_black]">
                 Intelligent Logistics for a Complex World
               </h1>
-              <p className="max-w-[42rem] leading-normal text-zinc-400 sm:text-xl sm:leading-8 font-mono">
+              <p className="max-w-[42rem] leading-normal text-zinc-100 sm:text-xl sm:leading-8 font-mono text-shadow-[0_0_50px_black]">
                 Mercurial empowers logistics providers to foresee supply chain disruptions.
                 Monitor maritime, air, and road traffic in real-time. Integrate global news feeds for predictive risk analysis.
               </p>
@@ -60,7 +60,7 @@ export default function Home() {
         </section>
 
         {/* Features Grid */}
-        <section id="features" className="py-24 bg-zinc-950 border-t border-zinc-900">
+        <section id="features" className="py-24 border-t border-zinc-900 relative bg-gradient-to-b from-zinc-900/90 via-zinc-900 to-zinc-950">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="mb-12 text-center md:text-left">
               <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl uppercase font-mono">
@@ -154,7 +154,7 @@ export default function Home() {
             </p>
             <Link
               href="/signup"
-              className="inline-flex h-14 items-center justify-center rounded bg-white px-8 text-base font-bold text-zinc-950 shadow-lg hover:bg-zinc-200 transition-all hover:scale-105 font-mono tracking-wider uppercase"
+              className="inline-flex h-14 items-center justify-center rounded bg-white px-8 text-base font-bold text-zinc-950 shadow-lg hover:bg-zinc-200 transition-all hover:scale-105 font-mono tracking-wider uppercase z-30"
             >
               Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
