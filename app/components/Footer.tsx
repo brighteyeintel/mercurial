@@ -26,8 +26,8 @@ export default function Footer() {
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/#features" className="hover:text-white transition-colors">
-                                    Features
+                                <Link href="/#capabilities" className="hover:text-white transition-colors">
+                                    Capabilities
                                 </Link>
                             </li>
                             <li>

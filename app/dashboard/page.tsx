@@ -51,9 +51,11 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="flex min-h-screen flex-col bg-zinc-900 text-white">
+        
+        <div className="flex min-h-screen flex-col text-white">
+            <div className="fixed w-full h-full  bg-gradient-to-b from-sky-100 to-zinc-950 [mask-image:url('/world-map.min.svg')] [mask-size:cover] [mask-position:center] opacity-10 translate-z-[-10px]"></div>
             <Navbar />
-            <main className="flex-1 container mx-auto px-4 py-8">
+            <main className="flex-1 container mx-auto px-4 py-8 backdrop-blur-[2px]">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold tracking-tight text-white uppercase font-mono">
                         Dashboard
