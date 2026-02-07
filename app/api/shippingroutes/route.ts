@@ -31,8 +31,13 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
+  const name = String((body as any).name ?? '').trim();
   const goods_type = String((body as any).goods_type ?? '').trim();
   const stages = Array.isArray((body as any).stages) ? (body as any).stages : [];
+
+  if (!name) {
+    return Response.json({ error: 'name is required' }, { status: 400 });
+  }
 
   if (!goods_type) {
     return Response.json({ error: 'goods_type is required' }, { status: 400 });
@@ -46,6 +51,6 @@ export async function POST(request: Request) {
     }
   }
 
-  const created = await ShippingRouteModel.create({ user_email: email, goods_type, stages });
+  const created = await ShippingRouteModel.create({ user_email: email, name, goods_type, stages });
   return Response.json({ route: created.toObject() }, { status: 201 });
 }

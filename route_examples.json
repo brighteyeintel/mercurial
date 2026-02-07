@@ -1,11 +1,22 @@
 [
   {
+    "name": "Pharma Cold Chain",
     "goods_type": "pharmaceuticals",
     "stages": [
       {
         "transport": {
-          "source": "Basel, CH",
-          "destination": "Frankfurt Airport (FRA), DE",
+          "source": {
+            "name": "Basel, CH",
+            "latitude": 47.5596,
+            "longitude": 7.5886,
+            "code": "BSL"
+          },
+          "destination": {
+            "name": "Frankfurt Airport (FRA), DE",
+            "latitude": 50.0379,
+            "longitude": 8.5622,
+            "code": "FRA"
+          },
           "mode": "road",
           "courier": "DHL Freight",
           "additional": "Reefer truck set to 2-8C"
@@ -20,8 +31,18 @@
       },
       {
         "transport": {
-          "source": "Frankfurt Airport (FRA), DE",
-          "destination": "JFK Airport (JFK), US",
+          "source": {
+            "name": "Frankfurt Airport (FRA), DE",
+            "latitude": 50.0379,
+            "longitude": 8.5622,
+            "code": "FRA"
+          },
+          "destination": {
+            "name": "JFK Airport (JFK), US",
+            "latitude": 40.6413,
+            "longitude": -73.7781,
+            "code": "JFK"
+          },
           "mode": "flight",
           "courier": "Lufthansa Cargo",
           "additional": "ULD temp-controlled container"
@@ -29,8 +50,18 @@
       },
       {
         "transport": {
-          "source": "JFK Airport (JFK), US",
-          "destination": "Newark, NJ, US",
+          "source": {
+            "name": "JFK Airport (JFK), US",
+            "latitude": 40.6413,
+            "longitude": -73.7781,
+            "code": "JFK"
+          },
+          "destination": {
+            "name": "Newark, NJ, US",
+            "latitude": 40.7357,
+            "longitude": -74.1724,
+            "code": "EWR"
+          },
           "mode": "road",
           "courier": "UPS",
           "additional": "Last-mile refrigerated delivery"
@@ -39,12 +70,23 @@
     ]
   },
   {
+    "name": "Electronics Supply Chain",
     "goods_type": "electronics",
     "stages": [
       {
         "transport": {
-          "source": "Shenzhen, CN",
-          "destination": "Yantian Port, CN",
+          "source": {
+            "name": "Shenzhen, CN",
+            "latitude": 22.5431,
+            "longitude": 114.0579,
+            "code": "SZX"
+          },
+          "destination": {
+            "name": "Yantian Port, CN",
+            "latitude": 22.575,
+            "longitude": 114.276,
+            "code": "YTN"
+          },
           "mode": "road",
           "courier": "SF Express",
           "additional": "Palletized, sealed"
@@ -59,8 +101,18 @@
       },
       {
         "transport": {
-          "source": "Yantian Port, CN",
-          "destination": "Port of Rotterdam, NL",
+          "source": {
+            "name": "Yantian Port, CN",
+            "latitude": 22.575,
+            "longitude": 114.276,
+            "code": "YTN"
+          },
+          "destination": {
+            "name": "Port of Rotterdam, NL",
+            "latitude": 51.9566,
+            "longitude": 4.1205,
+            "code": "RTM"
+          },
           "mode": "sea",
           "courier": "Maersk",
           "additional": "40ft container (FCL)"
@@ -75,8 +127,18 @@
       },
       {
         "transport": {
-          "source": "Port of Rotterdam, NL",
-          "destination": "Duisburg, DE",
+          "source": {
+            "name": "Port of Rotterdam, NL",
+            "latitude": 51.9566,
+            "longitude": 4.1205,
+            "code": "RTM"
+          },
+          "destination": {
+            "name": "Duisburg, DE",
+            "latitude": 51.4344,
+            "longitude": 6.7623,
+            "code": "DUI"
+          },
           "mode": "rail",
           "courier": "DB Cargo",
           "additional": "Intermodal rail to inland terminal"
@@ -84,8 +146,18 @@
       },
       {
         "transport": {
-          "source": "Duisburg, DE",
-          "destination": "Cologne, DE",
+          "source": {
+            "name": "Duisburg, DE",
+            "latitude": 51.4344,
+            "longitude": 6.7623,
+            "code": "DUI"
+          },
+          "destination": {
+            "name": "Cologne, DE",
+            "latitude": 50.9375,
+            "longitude": 6.9603,
+            "code": "CGN"
+          },
           "mode": "road",
           "courier": "GLS",
           "additional": "Final delivery"
