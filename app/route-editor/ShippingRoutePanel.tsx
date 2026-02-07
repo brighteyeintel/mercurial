@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react"
 import { ShippingRouteData, Stage, TransportMode, Transport, Holding, Location } from "../types/ShippingRouteData";
 import { Plus, Trash2, Save, ArrowLeft, Box, Clock, Globe, Check, X } from "lucide-react";
@@ -55,6 +55,13 @@ export default function ShippingRoutePanel({
     const [airports, setAirports] = useState<any[]>([]);
 
     const { data: session, status } = useSession()
+
+    // Memoize airport options to prevent redundant renders of thousands of DOM nodes
+    const airportOptions = useMemo(() => {
+        return airports.map(a => (
+            <option key={a.icao} value={a.icao}>{a.name} ({a.city}, {a.country})</option>
+        ));
+    }, [airports]);
 
     const fetchRoutes = async () => {
         if (status === "loading") {
@@ -580,7 +587,7 @@ export default function ShippingRoutePanel({
                                                         <div className="space-y-1">
                                                             <label className="text-[10px] font-medium text-zinc-500 uppercase">Airport Search</label>
                                                             <input
-                                                                list={`airports-origin-${index}`}
+                                                                list="airports-datalist"
                                                                 className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
                                                                 placeholder="Search Airport (ICAO)..."
                                                                 onChange={(e) => onAirportSelect(index, 'source', e.target.value)}
@@ -591,11 +598,6 @@ export default function ShippingRoutePanel({
                                                                     {stage.transport.source.name}
                                                                 </div>
                                                             )}
-                                                            <datalist id={`airports-origin-${index}`}>
-                                                                {airports.map(a => (
-                                                                    <option key={a.icao} value={a.icao}>{a.name} ({a.city}, {a.country})</option>
-                                                                ))}
-                                                            </datalist>
                                                         </div>
                                                     )}
                                                     {stage.transport.mode !== TransportMode.Flight && (
@@ -642,7 +644,7 @@ export default function ShippingRoutePanel({
                                                         <div className="space-y-1">
                                                             <label className="text-[10px] font-medium text-zinc-500 uppercase">Airport Search</label>
                                                             <input
-                                                                list={`airports-dest-${index}`}
+                                                                list="airports-datalist"
                                                                 className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
                                                                 placeholder="Search Airport (ICAO)..."
                                                                 onChange={(e) => onAirportSelect(index, 'destination', e.target.value)}
@@ -653,11 +655,6 @@ export default function ShippingRoutePanel({
                                                                     {stage.transport.destination.name}
                                                                 </div>
                                                             )}
-                                                            <datalist id={`airports-dest-${index}`}>
-                                                                {airports.map(a => (
-                                                                    <option key={a.icao} value={a.icao}>{a.name} ({a.city}, {a.country})</option>
-                                                                ))}
-                                                            </datalist>
                                                         </div>
                                                     )}
                                                     {stage.transport.mode !== TransportMode.Flight && (
@@ -767,6 +764,9 @@ export default function ShippingRoutePanel({
                     )}
                 </div>
             </div>
+            <datalist id="airports-datalist">
+                {airportOptions}
+            </datalist>
         </div>
     );
 }
