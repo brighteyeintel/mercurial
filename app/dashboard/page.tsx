@@ -57,7 +57,7 @@ export default function DashboardPage() {
             <Navbar />
             <main className="flex-1 container mx-auto px-4 py-8 backdrop-blur-[2px]">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold tracking-tight text-white uppercase font-mono">
+                    <h1 className="text-4xl font-bold tracking-tight text-white uppercase font-mono">
                         Dashboard
                     </h1>
                     <p className="mt-2 text-zinc-400">
@@ -68,36 +68,44 @@ export default function DashboardPage() {
                 <div className="grid gap-6 grid-cols-3 justify-items-center py-5">
                     <div className="flex flex-col items-center text-center">
                         <div className="w-32 h-32 bg-sky-400/50 [mask-image:url('/arrows-reload-01-svgrepo-com.svg')] mask-contain mask-no-repeat mask-center mb-4"></div>
-                        <span className="text-white text-8xl font-mono" data-count-to="10">0</span>
+                        <span className="text-white text-8xl" data-count-to="10">0</span>
                         <p className="mt-4 text-zinc-400 text-xl">Routes</p>
                     </div>
                     <div className="flex flex-col items-center text-center">
                         <div className="w-32 h-32 bg-red-600/50 [mask-image:url('/triangle-exclamation-svgrepo-com.svg')] mask-contain mask-no-repeat mask-center mb-4"></div>
-                        <span className="text-white text-8xl font-mono" data-count-to="5">0</span>
+                        <span className="text-white text-8xl" data-count-to="5">0</span>
                         <p className="mt-4 text-zinc-400 text-xl">Risk Events</p>
                     </div>
                     <div className="flex flex-col items-center text-center">
                         <div className="w-32 h-32 bg-green-400/50 [mask-image:url('/circle-tick-svgrepo-com.svg')] mask-contain mask-no-repeat mask-center mb-4"></div>
-                        <span className="text-white text-8xl font-mono" data-count-to="20">0</span>
+                        <span className="text-white text-8xl" data-count-to="20">0</span>
                         <p className="mt-4 text-zinc-400 text-xl">Shipments Optimized</p>
                     </div>
                 </div>
-                
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {/* Placeholder Dashboard Cards */}
-                    <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-6 shadow-sm hover:border-zinc-700 transition-colors">
-                        <h3 className="text-lg font-medium text-white mb-2">My Routes</h3>
-                        <p className="text-zinc-400 text-sm">View and manage your saved delivery routes.</p>
-                    </div>
-                    
-                    <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-6 shadow-sm hover:border-zinc-700 transition-colors">
-                        <h3 className="text-lg font-medium text-white mb-2">Recent Activity</h3>
-                        <p className="text-zinc-400 text-sm">Check your recent optimization history.</p>
+
+                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                    {/* My Routes */}
+                    <div className="group relative overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/50 p-8 hover:border-zinc-700 hover:bg-zinc-900 transition-all">
+                        <h3 className="mb-2 text-xl font-bold text-white tracking-wide group-hover:text-sky-400 transition-colors">My Routes</h3>
+                        <p className="text-zinc-400 leading-relaxed">
+                        View and manage your saved delivery routes.
+                        </p>
                     </div>
 
-                    <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-6 shadow-sm hover:border-zinc-700 transition-colors">
-                        <h3 className="text-lg font-medium text-white mb-2">Settings</h3>
-                        <p className="text-zinc-400 text-sm">Update your preferences and account details.</p>
+                    {/* Recent Activity */}
+                    <div className="group relative overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/50 p-8 hover:border-zinc-700 hover:bg-zinc-900 transition-all">
+                        <h3 className="mb-2 text-xl font-bold text-white tracking-wide group-hover:text-sky-400 transition-colors">Recent Activity</h3>
+                        <p className="text-zinc-400 leading-relaxed">
+                        Check your recent optimization history.
+                        </p>
+                    </div>
+
+                    {/* Settings */}
+                    <div className="group relative overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/50 p-8 hover:border-zinc-700 hover:bg-zinc-900 transition-all">
+                        <h3 className="mb-2 text-xl font-bold text-white tracking-wide group-hover:text-sky-400 transition-colors">Settings</h3>
+                        <p className="text-zinc-400 leading-relaxed">
+                        Update your preferences and account details.
+                        </p>
                     </div>
                 </div>
             </main>

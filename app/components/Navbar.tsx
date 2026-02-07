@@ -21,15 +21,12 @@ export default function Navbar() {
           <Link href="/#solutions" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
             Solutions
           </Link>
-          <Link href="/mercurial" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
-            App
-          </Link>
-          <Link href="/route-editor" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
-            Route Editor
+          <Link href="/current-threats" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
+            Current Threats
           </Link>
           {session && (
-            <Link href="/dashboard" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
-              Dashboard
+            <Link href="/route-editor" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
+              Route Editor
             </Link>
           )}
         </nav>
@@ -38,7 +35,7 @@ export default function Navbar() {
             <div className="h-9 w-20 animate-pulse bg-zinc-800 rounded-md" />
           ) : session ? (
             <div className="flex items-center gap-4">
-              <Link href="/account"
+              <Link href="/dashboard"
                 className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider hover:cursor-pointer"
               >
                 {session.user?.name?.toUpperCase().replace(/ .*/, '') || session.user?.email?.toUpperCase().replace(/@.*/, '')}
