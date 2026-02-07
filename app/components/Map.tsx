@@ -1,10 +1,11 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 // Fix for missing marker icons in leaflet production bundle
 import L from "leaflet";
 import { useEffect, useState } from "react";
+import { Clock, ExternalLink } from "lucide-react";
 
 interface TrafficEvent {
     title: string;
@@ -17,6 +18,7 @@ interface TrafficEvent {
     longitude: number;
     overallStart?: string;
     overallEnd?: string;
+    radius?: number;
 }
 
 const MapComponent = () => {
@@ -26,6 +28,7 @@ const MapComponent = () => {
         "Road Works": false,
         "Accident": true,
         "Congestion": true,
+        "Maritime": true,
         "Other": true
     });
 
@@ -40,16 +43,43 @@ const MapComponent = () => {
             shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
         });
 
-        // Fetch traffic events
+        // Fetch events
         const fetchEvents = async () => {
             try {
-                const response = await fetch('/api/traffic');
-                const data = await response.json();
-                if (data.events) {
-                    setEvents(data.events);
+                const [trafficRes, maritimeRes] = await Promise.all([
+                    fetch('/api/traffic'),
+                    fetch('/api/maritime/disruptions')
+                ]);
+
+                const trafficData = await trafficRes.json();
+                const maritimeData = await maritimeRes.json();
+
+                let allEvents: TrafficEvent[] = [];
+
+                if (trafficData.events) {
+                    allEvents = [...allEvents, ...trafficData.events];
                 }
+
+                if (maritimeData.disruptions) {
+                    const maritimeEvents = maritimeData.disruptions
+                        .filter((d: any) => d.latitude && d.longitude)
+                        .map((d: any) => ({
+                            title: d.title,
+                            description: d.description,
+                            link: d.link,
+                            guid: d.guid,
+                            pubDate: d.pubDate,
+                            category: "Maritime",
+                            latitude: d.latitude,
+                            longitude: d.longitude,
+                            radius: d.radius
+                        }));
+                    allEvents = [...allEvents, ...maritimeEvents];
+                }
+
+                setEvents(allEvents);
             } catch (error) {
-                console.error("Failed to fetch traffic events:", error);
+                console.error("Failed to fetch events:", error);
             }
         };
 
@@ -64,6 +94,7 @@ const MapComponent = () => {
         if (lowerCat.includes("road works") || lowerCat.includes("roadworks")) return "#f97316"; // Orange
         if (lowerCat.includes("accident") || lowerCat.includes("incident")) return "#ef4444"; // Red
         if (lowerCat.includes("congestion") || lowerCat.includes("delay")) return "#eab308"; // Yellow
+        if (lowerCat.includes("maritime")) return "#06b6d4"; // Cyan for Maritime
         return "#3b82f6"; // Blue default
     };
 
@@ -72,6 +103,7 @@ const MapComponent = () => {
         if (lowerCat.includes("road works") || lowerCat.includes("roadworks")) return "Road Works";
         if (lowerCat.includes("accident") || lowerCat.includes("incident")) return "Accident";
         if (lowerCat.includes("congestion") || lowerCat.includes("delay")) return "Congestion";
+        if (lowerCat.includes("maritime")) return "Maritime";
         return "Other";
     };
 
@@ -100,6 +132,49 @@ const MapComponent = () => {
         }));
     };
 
+    const renderPopup = (event: TrafficEvent) => (
+        <Popup className="traffic-popup">
+            <div className="min-w-[250px] max-w-[300px]">
+                <div
+                    className="p-2 text-white font-bold rounded-t-md -mx-4 -mt-3 mb-2 flex justify-between items-start gap-2"
+                    style={{ backgroundColor: getCategoryColor(event.category) }}
+                >
+                    <span className="truncate">{event.title}</span>
+                </div>
+                <div className="text-sm text-zinc-800">
+                    <p className="font-semibold text-xs text-zinc-500 uppercase mb-1">{event.category}</p>
+                    <p className="whitespace-pre-line mb-3 max-h-[150px] overflow-y-auto">{event.description}</p>
+
+                    <div className="flex flex-col gap-1 mt-2 pt-2 border-t border-zinc-200">
+                        {event.pubDate && (
+                            <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>{new Date(event.pubDate).toLocaleString()}</span>
+                            </div>
+                        )}
+                        {event.overallEnd && (
+                            <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                                <Clock className="w-3.5 h-3.5 text-orange-500" />
+                                <span>Ends: {new Date(event.overallEnd).toLocaleString()}</span>
+                            </div>
+                        )}
+                        {event.link && (
+                            <a
+                                href={event.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 mt-1"
+                            >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                View Full Report
+                            </a>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </Popup>
+    );
+
     return (
         <div className="relative h-full w-full">
             <MapContainer
@@ -123,33 +198,36 @@ const MapComponent = () => {
 
                 {events
                     .filter(event => visibleCategories[mapCategoryToKey(event.category)])
-                    .map((event) => (
-                        <Marker
-                            key={event.guid}
-                            position={[event.latitude, event.longitude]}
-                            icon={createCustomIcon(event.category)}
-                        >
-                            <Popup className="traffic-popup">
-                                <div className="min-w-[200px]">
-                                    <div
-                                        className="p-2 text-white font-bold rounded-t-md -mx-4 -mt-3 mb-2"
-                                        style={{ backgroundColor: getCategoryColor(event.category) }}
-                                    >
-                                        {event.title}
-                                    </div>
-                                    <div className="text-sm text-zinc-800">
-                                        <p className="font-semibold text-xs text-zinc-500 uppercase mb-1">{event.category}</p>
-                                        <p className="whitespace-pre-line">{event.description}</p>
-                                        {event.overallEnd && (
-                                            <p className="text-xs text-zinc-500 mt-2">
-                                                Ends: {new Date(event.overallEnd).toLocaleString()}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            </Popup>
-                        </Marker>
-                    ))}
+                    .map((event) => {
+                        // Radius logic: radius 1 -> Marker, otherwise Circle
+                        // Traffic events might not have radius, default to Marker (or treat as radius 1)
+                        if (event.radius && event.radius > 1) {
+                            return (
+                                <Circle
+                                    key={event.guid}
+                                    center={[event.latitude, event.longitude]}
+                                    radius={event.radius}
+                                    pathOptions={{
+                                        color: getCategoryColor(event.category),
+                                        fillColor: getCategoryColor(event.category),
+                                        fillOpacity: 0.3
+                                    }}
+                                >
+                                    {renderPopup(event)}
+                                </Circle>
+                            );
+                        }
+
+                        return (
+                            <Marker
+                                key={event.guid}
+                                position={[event.latitude, event.longitude]}
+                                icon={createCustomIcon(event.category)}
+                            >
+                                {renderPopup(event)}
+                            </Marker>
+                        );
+                    })}
             </MapContainer>
 
             {/* Legend Overlay */}
@@ -170,6 +248,7 @@ const MapComponent = () => {
                                 case "Road Works": color = "#f97316"; break;
                                 case "Accident": color = "#ef4444"; break;
                                 case "Congestion": color = "#eab308"; break;
+                                case "Maritime": color = "#06b6d4"; break;
                                 default: color = "#3b82f6";
                             }
 
