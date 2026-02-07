@@ -1,15 +1,29 @@
 import { dbConnect } from '../../lib/mongo';
 import { ShippingRouteModel } from '../../models/ShippingRoute';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../lib/authOptions';
 
 export const runtime = 'nodejs';
 
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email;
+  if (!email) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   await dbConnect();
-  const routes = await ShippingRouteModel.find({}).lean();
+  const routes = await ShippingRouteModel.find({ user_email: email }).lean();
   return Response.json({ routes });
 }
 
 export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email;
+  if (!email) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   await dbConnect();
 
   const body = await request.json().catch(() => null);
@@ -32,6 +46,6 @@ export async function POST(request: Request) {
     }
   }
 
-  const created = await ShippingRouteModel.create({ goods_type, stages });
+  const created = await ShippingRouteModel.create({ user_email: email, goods_type, stages });
   return Response.json({ route: created.toObject() }, { status: 201 });
 }

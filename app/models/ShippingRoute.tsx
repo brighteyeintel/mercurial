@@ -5,6 +5,7 @@ import { TransportMode } from '../types/ShippingRouteData';
 
 export interface ShippingRouteRecord {
   _id: mongoose.Types.ObjectId;
+  user_email: string;
   goods_type: string;
   stages: Stage[];
 }
@@ -45,6 +46,7 @@ StageSchema.path('transport').validate(function (this: any) {
 
 const RouteSchema = new mongoose.Schema(
   {
+    user_email: { type: String, required: true, index: true },
     goods_type: { type: String, required: true },
     stages: { type: [StageSchema], default: [] },
   },
@@ -56,8 +58,16 @@ export const ShippingRouteModel: Model<ShippingRouteRecord> =
 
 // Helpers
 
-export async function createShippingRoute(data: { goods_type: string; stages?: ShippingRouteRecord['stages'] }) : Promise<ShippingRouteRecord> {
-  const route = new ShippingRouteModel({ goods_type: data.goods_type, stages: data.stages ?? [] });
+export async function createShippingRoute(data: {
+  user_email: string;
+  goods_type: string;
+  stages?: ShippingRouteRecord['stages'];
+}): Promise<ShippingRouteRecord> {
+  const route = new ShippingRouteModel({
+    user_email: data.user_email,
+    goods_type: data.goods_type,
+    stages: data.stages ?? [],
+  });
   await route.save();
   return route;
 }

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { ShippingRouteData, Stage, TransportMode, Transport, Holding } from "../types/ShippingRouteData";
 import { Plus, Trash2, Save, ArrowLeft, Box, Clock, Globe } from "lucide-react";
 import Link from "next/link";
 import MapWrapper from "../components/MapWrapper";
+import { useSession } from "next-auth/react"
 
 // Helper to get initial empty transport object
 const getEmptyTransport = (): Transport => ({
@@ -30,6 +31,8 @@ export default function RouteEditorPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [savedRouteId, setSavedRouteId] = useState<string | null>(null);
+
+    const { data: session, status } = useSession()
 
     const addStage = () => {
         setStages([...stages, { transport: getEmptyTransport() }]);
@@ -71,8 +74,40 @@ export default function RouteEditorPage() {
         }
     };
 
-    // Generate the ShippingRouteData object for logging/saving (not previewed anymore)
-    const routeData = new ShippingRouteData(goodsType, stages);
+    const onRouteSave = async () => {
+        if (status === "loading") {
+            return;
+        }
+
+        if (!session) {
+            return;
+        }
+        
+        setIsSaving(true);
+        setSaveError(null);
+        setSavedRouteId(null);
+
+        try {
+            const routeData = new ShippingRouteData(goodsType, stages);
+            const res = await fetch('/api/shippingroutes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(routeData.toJSON()),
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error((data as any)?.error || 'Failed to save route');
+            }
+
+            const id = (data as any)?.route?._id;
+            setSavedRouteId(typeof id === 'string' ? id : JSON.stringify(id));
+        } catch (e) {
+            setSaveError(e instanceof Error ? e.message : 'Failed to save route');
+        } finally {
+            setIsSaving(false);
+        }
+    }
 
     return (
         <div className="flex h-screen flex-col bg-black text-white selection:bg-zinc-800 selection:text-zinc-100 overflow-hidden">
@@ -105,31 +140,7 @@ export default function RouteEditorPage() {
                         <button
                             className="inline-flex items-center justify-center rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-emerald-500 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 uppercase tracking-wider"
                             disabled={isSaving}
-                            onClick={async () => {
-                                setIsSaving(true);
-                                setSaveError(null);
-                                setSavedRouteId(null);
-
-                                try {
-                                    const res = await fetch('/api/shippingroutes', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify(routeData.toJSON()),
-                                    });
-
-                                    const data = await res.json().catch(() => ({}));
-                                    if (!res.ok) {
-                                        throw new Error((data as any)?.error || 'Failed to save route');
-                                    }
-
-                                    const id = (data as any)?.route?._id;
-                                    setSavedRouteId(typeof id === 'string' ? id : JSON.stringify(id));
-                                } catch (e) {
-                                    setSaveError(e instanceof Error ? e.message : 'Failed to save route');
-                                } finally {
-                                    setIsSaving(false);
-                                }
-                            }}
+                            onClick={onRouteSave}
                         >
                             <Save className="mr-1.5 h-3.5 w-3.5" />
                             Save
