@@ -35,7 +35,7 @@ export default function MapWrapper() {
         const fetchEvents = async () => {
             try {
                 const [trafficRes, maritimeRes] = await Promise.all([
-                    fetch('/api/traffic'),
+                    fetch('/api/roads/traffic'),
                     fetch('/api/maritime/disruptions')
                 ]);
 
