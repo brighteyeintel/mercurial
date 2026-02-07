@@ -21,8 +21,11 @@ export default function Navbar() {
           <Link href="#solutions" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
             Solutions
           </Link>
-          <Link href="#pricing" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
-            Pricing
+          <Link href="/mercurial" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
+            App
+          </Link>
+          <Link href="/route-editor" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
+            Route Editor
           </Link>
         </nav>
         <div className="flex items-center gap-4">
