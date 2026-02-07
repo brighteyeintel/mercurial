@@ -35,7 +35,7 @@ export default function Navbar() {
               </span>
               <button
                 onClick={() => signOut()}
-                className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider"
+                className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider hover:cursor-pointer"
               >
                 Logout
               </button>
@@ -44,13 +44,13 @@ export default function Navbar() {
             <>
               <button
                 onClick={() => signIn('github')}
-                className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider"
+                className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider hover:cursor-pointer"
               >
                 Login
               </button>
               <button
                 onClick={() => signIn('github')}
-                className="hidden sm:inline-flex h-9 items-center justify-center rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 shadow hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300 disabled:pointer-events-none disabled:opacity-50 font-mono uppercase tracking-wide"
+                className="hidden sm:inline-flex h-9 items-center justify-center rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 shadow hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300 disabled:pointer-events-none disabled:opacity-50 font-mono uppercase tracking-wide hover:cursor-pointer"
               >
                 Sign Up
               </button>

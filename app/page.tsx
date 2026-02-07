@@ -12,9 +12,10 @@ export default function Home() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative overflow-hidden py-24 lg:py-32 xl:py-40">
+        <section className="relative flex items-center justify-center overflow-hidden py-24 lg:py-32 xl:py-40 z-30">
+          <div className="absolute z-10 w-full h-full bg-blue-800 [mask-image:url('/gdj-corona-virus.svg')] [mask-size:cover] [mask-position:center] [-webkit-mask-image:url('/gdj-corona-virus.svg')] [-webkit-mask-size:cover] [-webkit-mask-position:center] opacity-50"></div>
           <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
-          <div className="container relative z-10 px-4 md:px-6 mx-auto">
+          <div className="container relative px-4 md:px-6 mx-auto z-30">
             <div className="flex flex-col items-center gap-6 text-center">
               <div className="inline-flex items-center rounded-full border border-zinc-800 bg-zinc-950/50 px-3 py-1 text-sm font-medium text-zinc-400 backdrop-blur-xl">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 mr-2"></span>
@@ -43,8 +44,9 @@ export default function Home() {
               </div>
             </div>
           </div>
-
+          
           {/* Abstract Hero Visualization */}
+          {/*}
           <div className="mt-16 flex justify-center opacity-40">
             <div className="relative h-64 w-full max-w-5xl overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/50 md:h-96 shadow-2xl shadow-zinc-900/50">
               <div className="absolute inset-0 flex items-center justify-center">
@@ -54,7 +56,7 @@ export default function Home() {
               <div className="absolute top-1/2 right-1/3 h-2 w-2 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
               <div className="absolute bottom-1/3 left-1/2 h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
             </div>
-          </div>
+          </div> */}
         </section>
 
         {/* Features Grid */}
