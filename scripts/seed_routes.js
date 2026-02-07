@@ -6,8 +6,8 @@ const mongoose = require('mongoose');
 
 async function main() {
 // TODO: Replace temporarily / get from environment variables
-  const uri = "mongodb+srv://db-user:QF2GTWUGocm0nYlo@mercurial-cluster.fgtju90.mongodb.net/?appName=mercurial-cluster";
-  const dbName = "mercurial";
+  const uri = "";
+  const dbName = "";
 
   if (!uri) {
     throw new Error('MONGODB_URI is required');
