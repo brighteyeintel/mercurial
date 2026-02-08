@@ -119,6 +119,31 @@ async function expandWithStations(disruptions: RailDisruption[]): Promise<RailDi
     return expanded;
 }
 
+function dedupeDisruptions(disruptions: RailDisruption[]): RailDisruption[] {
+    const seen = new Set<string>();
+    const out: RailDisruption[] = [];
+
+    for (const d of disruptions) {
+        const lat = d.lat != null ? Math.round(d.lat * 10000) / 10000 : null;
+        const lon = d.lon != null ? Math.round(d.lon * 10000) / 10000 : null;
+
+        const key = [
+            (d.title ?? '').trim().toLowerCase(),
+            (d.description ?? '').trim().toLowerCase(),
+            (d.operator ?? '').trim().toLowerCase(),
+            (d.crsCode ?? d.stationName ?? '').trim().toLowerCase(),
+            lat == null ? '' : String(lat),
+            lon == null ? '' : String(lon),
+        ].join('|');
+
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(d);
+    }
+
+    return out;
+}
+
 function asString(value: unknown): string | undefined {
     if (typeof value === 'string') return value;
     if (typeof value === 'number') return String(value);
@@ -207,8 +232,8 @@ async function fetchTrainlineDisruptions(): Promise<RailDisruption[]> {
         });
 
         const normalized = flattened.map((it: any, i: number) => normalizeDisruption(it, i));
-        const result = await expandWithStations(normalized);
-        return result;
+        const expanded = await expandWithStations(normalized);
+        return dedupeDisruptions(expanded);
     } catch (error) {
         console.error('Error fetching Trainline railway status:', error);
         return [];
