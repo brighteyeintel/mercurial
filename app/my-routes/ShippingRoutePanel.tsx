@@ -48,6 +48,7 @@ interface ShippingRoutePanelProps {
     fetchAllRoutePreviews?: (stages: Stage[]) => Promise<void>;
     clearAllPreviews?: () => void;
     isLoadingAll?: boolean;
+    routePreviews?: any[]; // Use any[] or import RoutePreviewData
 }
 
 interface RouteRiskPoint {
@@ -62,7 +63,8 @@ interface RouteRiskPoint {
 export default function ShippingRoutePanel({
     fetchAllRoutePreviews,
     clearAllPreviews,
-    isLoadingAll = false
+    isLoadingAll = false,
+    routePreviews = []
 }: ShippingRoutePanelProps) {
     const [view, setView] = useState<'list' | 'edit' | 'overview'>('list');
     const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
@@ -724,6 +726,26 @@ export default function ShippingRoutePanel({
                                                             {stage.transport.courier && (
                                                                 <span className="text-[10px] text-zinc-500 bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800">{stage.transport.courier}</span>
                                                             )}
+                                                            {/* Traffic / Journey Time Info */}
+                                                            {(() => {
+                                                                const preview = routePreviews.find(p => p.stageIndex === index);
+                                                                if (!preview) return null;
+                                                                return (
+                                                                    <div className="flex items-center gap-2">
+                                                                        {preview.durationInTraffic && (
+                                                                            <span className="text-[10px] font-bold text-zinc-300 flex items-center gap-1">
+                                                                                <Clock className="h-3 w-3" />
+                                                                                {preview.durationInTraffic}
+                                                                            </span>
+                                                                        )}
+                                                                        {preview.trafficDelta && preview.trafficDelta.startsWith('+') && preview.trafficDelta !== '+0 mins' && (
+                                                                            <span className="text-[9px] font-bold text-red-400 bg-red-950/30 px-1 py-0.5 rounded border border-red-900/30">
+                                                                                {preview.trafficDelta} traffic
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
                                                         <div className="grid grid-cols-[1fr,auto,1fr] gap-3 items-center">
                                                             <div>

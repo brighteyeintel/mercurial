@@ -1422,6 +1422,7 @@ export default function RouteEditorPage() {
                         fetchAllRoutePreviews={routePreviewHook.fetchAllRoutePreviews}
                         clearAllPreviews={routePreviewHook.clearAllPreviews}
                         isLoadingAll={routePreviewHook.isLoadingAll}
+                        routePreviews={routePreviewHook.routePreviews}
                     />
                 </div>
             </div>

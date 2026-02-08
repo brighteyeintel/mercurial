@@ -9,6 +9,7 @@ export interface RoutePreviewData {
     coordinates: [number, number][]; // [lat, lng][]
     duration?: string;
     durationInTraffic?: string;
+    trafficDelta?: string;
     mode: TransportMode | "holding";
 }
 
@@ -97,6 +98,7 @@ async function fetchRailRoute(origin: string, destination: string): Promise<Rout
                 coordinates: decoded,
                 duration: data.duration?.text,
                 durationInTraffic: data.durationInTraffic?.text,
+                trafficDelta: data.difference?.text,
                 mode: TransportMode.Rail,
             };
         }
@@ -131,6 +133,7 @@ async function fetchRoadRoute(
                 coordinates: decoded,
                 duration: data.duration?.text,
                 durationInTraffic: data.durationInTraffic?.text,
+                trafficDelta: data.difference?.text,
                 mode: TransportMode.Road,
             };
         }
