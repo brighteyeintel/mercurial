@@ -14,10 +14,43 @@ export interface RoutePreviewData {
 
 // Stub functions for non-road transport modes
 // These will be implemented when APIs become available
-async function fetchFlightRoute(origin: string, destination: string): Promise<[number, number][] | null> {
-    // TODO: Integrate with aviation API when available
-    console.log(`[STUB] Flight route from ${origin} to ${destination} - not yet implemented`);
-    return null;
+async function fetchFlightRoute(
+    origin: { lat: number; lng: number },
+    destination: { lat: number; lng: number }
+): Promise<[number, number][] | null> {
+    const points: [number, number][] = [];
+    const steps = 50; // Resolution of the curve
+
+    const p0 = origin;
+    const p2 = destination;
+
+    // Calculate midpoint
+    const midLat = (p0.lat + p2.lat) / 2;
+    const midLng = (p0.lng + p2.lng) / 2;
+
+    // Calculate a control point to create an arc that bows away from the equator.
+    // This helps mimic great circle paths on a 2D map projection.
+    const dist = Math.sqrt(Math.pow(p2.lat - p0.lat, 2) + Math.pow(p2.lng - p0.lng, 2));
+    const curvature = 0.2; // Adjust this for more or less arc
+
+    // Determine bowing direction: North (+) in Northern Hemisphere, South (-) in Southern Hemisphere
+    const direction = midLat >= 0 ? 1 : -1;
+
+    // Control point P1 = Midpoint + Latitudinal Offset (bowing away from equator)
+    const p1 = {
+        lat: midLat + (dist * curvature * direction),
+        lng: midLng
+    };
+
+    for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        // Quadratic Bezier formula: (1-t)^2 * P0 + 2(1-t)t * P1 + t^2 * P2
+        const lat = Math.pow(1 - t, 2) * p0.lat + 2 * (1 - t) * t * p1.lat + Math.pow(t, 2) * p2.lat;
+        const lng = Math.pow(1 - t, 2) * p0.lng + 2 * (1 - t) * t * p1.lng + Math.pow(t, 2) * p2.lng;
+        points.push([lat, lng]);
+    }
+
+    return points;
 }
 
 async function fetchSeaRoute(origin: string, destination: string): Promise<[number, number][] | null> {
@@ -106,22 +139,22 @@ export function useRoutePreview() {
             }
 
             if (stage.transport) {
-                const origin = stage.transport.source.name;
-                const destination = stage.transport.destination.name;
-
-                if (!origin || !destination) {
-                    console.warn(`Stage ${i}: Missing origin or destination`);
-                    continue;
-                }
+                const originName = stage.transport.source.name;
+                const destinationName = stage.transport.destination.name;
 
                 let result: RoutePreviewData | null = null;
 
                 switch (stage.transport.mode) {
                     case TransportMode.Road:
-                        result = await fetchRoadRoute(origin, destination);
+                        if (originName && destinationName) {
+                            result = await fetchRoadRoute(originName, destinationName);
+                        }
                         break;
                     case TransportMode.Flight:
-                        const flightCoords = await fetchFlightRoute(origin, destination);
+                        const flightCoords = await fetchFlightRoute(
+                            { lat: stage.transport.source.latitude, lng: stage.transport.source.longitude },
+                            { lat: stage.transport.destination.latitude, lng: stage.transport.destination.longitude }
+                        );
                         if (flightCoords) {
                             result = {
                                 stageIndex: i,
@@ -131,23 +164,27 @@ export function useRoutePreview() {
                         }
                         break;
                     case TransportMode.Sea:
-                        const seaCoords = await fetchSeaRoute(origin, destination);
-                        if (seaCoords) {
-                            result = {
-                                stageIndex: i,
-                                coordinates: seaCoords,
-                                mode: TransportMode.Sea,
-                            };
+                        if (originName && destinationName) {
+                            const seaCoords = await fetchSeaRoute(originName, destinationName);
+                            if (seaCoords) {
+                                result = {
+                                    stageIndex: i,
+                                    coordinates: seaCoords,
+                                    mode: TransportMode.Sea,
+                                };
+                            }
                         }
                         break;
                     case TransportMode.Rail:
-                        const railCoords = await fetchRailRoute(origin, destination);
-                        if (railCoords) {
-                            result = {
-                                stageIndex: i,
-                                coordinates: railCoords,
-                                mode: TransportMode.Rail,
-                            };
+                        if (originName && destinationName) {
+                            const railCoords = await fetchRailRoute(originName, destinationName);
+                            if (railCoords) {
+                                result = {
+                                    stageIndex: i,
+                                    coordinates: railCoords,
+                                    mode: TransportMode.Rail,
+                                };
+                            }
                         }
                         break;
                 }

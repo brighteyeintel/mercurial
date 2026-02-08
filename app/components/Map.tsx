@@ -10,6 +10,7 @@ import { NavigationWarning } from "../types/NavigationWarning";
 import { RoutePreviewData } from "../hooks/useRoutePreview";
 import { Notam } from "../types/Notam";
 import { WeatherAlert } from "../types/WeatherAlert";
+import { TransportMode } from "../types/ShippingRouteData";
 
 // Component to handle map interactions like flying to coordinates
 const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert }: { selectedWarning?: NavigationWarning | null, selectedNotam?: Notam | null, selectedWeatherAlert?: WeatherAlert | null }) => {
@@ -372,6 +373,7 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert, ro
                             color: "#10b981", // Emerald color
                             weight: 4,
                             opacity: 0.8,
+                            dashArray: preview.mode === TransportMode.Flight ? "10, 10" : undefined,
                         }}
                     />
                 ))}
