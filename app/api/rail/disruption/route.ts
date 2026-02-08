@@ -5,7 +5,7 @@ import path from 'node:path';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-import { RailDisruption } from '../types/RailDisruption';
+import { RailDisruption } from '../../../types/RailDisruption';
 
 interface StationRecord {
     stationName: string;
