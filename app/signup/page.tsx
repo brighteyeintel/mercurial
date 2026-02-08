@@ -7,7 +7,7 @@ import Link from "next/link";
 
 export default function SignupPage() {
     return (
-        <div className="flexmin-h-screen flex-col items-center justify-center bg-zinc-950 px-4 py-12 sm:px-6 lg:px-8">
+        <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4 py-12 sm:px-6 lg:px-8">
             <div className="w-full max-w-md space-y-8">
                 <div className="flex flex-col items-center justify-center text-center">
                     <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-900 border border-zinc-800 mb-6">
@@ -25,7 +25,7 @@ export default function SignupPage() {
                     <div className="flex flex-col gap-4">
                         <button
                             onClick={() => signIn('github', { callbackUrl: '/mercurial' })}
-                            className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-3 text-sm font-semibold text-zinc-950 shadow-sm hover:bg-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-colors"
+                            className="flex w-full hover:cursor-pointer items-center justify-center gap-3 rounded-md bg-white px-3 py-3 text-sm font-semibold text-zinc-950 shadow-sm hover:bg-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-colors"
                         >
                             <Github className="h-5 w-5" />
                             Sign in with GitHub
