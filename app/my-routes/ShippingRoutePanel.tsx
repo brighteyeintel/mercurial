@@ -153,7 +153,7 @@ export default function ShippingRoutePanel({
     }, [status, session]);
 
     useEffect(() => {
-        if (view === 'overview' && stages.length > 0 && fetchAllRoutePreviews) {
+        if ((view === 'overview' || view === 'edit') && stages.length > 0 && fetchAllRoutePreviews) {
             fetchAllRoutePreviews(stages);
         }
     }, [view, stages, fetchAllRoutePreviews]);
@@ -415,7 +415,7 @@ export default function ShippingRoutePanel({
                     {/* <Link href="/" className="rounded-full bg-zinc-900 p-2 hover:bg-zinc-800 transition-colors">
                         <ArrowLeft className="h-4 w-4 text-zinc-400" />
                     </Link> */}
-                    <h1 className="text-lg font-bold tracking-tight text-white uppercase font-mono">Route Editor</h1>
+                    <h1 className="text-lg font-bold tracking-tight text-white uppercase font-mono">My Routes</h1>
                 </div>
                 {view === 'list' ? (
                     <button
@@ -458,27 +458,6 @@ export default function ShippingRoutePanel({
                             >
                                 <Edit className="mr-1.5 h-3.5 w-3.5" />
                                 Edit Route
-                            </button>
-                        )}
-
-                        {(view === 'edit' || view === 'overview') && fetchAllRoutePreviews && (
-                            <button
-                                type="button"
-                                className="inline-flex items-center justify-center rounded bg-cyan-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-cyan-500 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-cyan-500 uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled={isLoadingAll || stages.length === 0}
-                                onClick={() => fetchAllRoutePreviews(stages)}
-                            >
-                                {isLoadingAll ? (
-                                    <>
-                                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5" />
-                                        Loading...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Globe className="mr-1.5 h-3.5 w-3.5" />
-                                        Display Route
-                                    </>
-                                )}
                             </button>
                         )}
 

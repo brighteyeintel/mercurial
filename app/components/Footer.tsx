@@ -27,7 +27,7 @@ export default function Footer() {
                     <div className="flex-none inline-block min-h-[1em] w-0.5 self-stretch bg-neutral-100 dark:bg-white/10 mx-8"></div>
 
                     {/* Product Section (Centered Column) */}
-                    <div className="space-y-4 flex-1 flex flex-col items-center">   
+                    <div className="space-y-4 flex-1 flex flex-col items-center">
                         <div className="flex flex-col">
                             <h4 className="text-sm font-medium text-zinc-100 uppercase tracking-wider">Product</h4>
                             <ul className="space-y-2 text-sm mt-4">
@@ -65,8 +65,8 @@ export default function Footer() {
                                         </Link>
                                     </li>
                                     <li>
-                                        <Link href="/route-editor" className="hover:text-white transition-colors">
-                                            Route Editor
+                                        <Link href="/my-routes" className="hover:text-white transition-colors">
+                                            My Routes
                                         </Link>
                                     </li>
                                 </ul>
