@@ -13,6 +13,7 @@ import { WeatherAlert } from "../types/WeatherAlert";
 import { RailDisruption } from "../types/RailDisruption";
 import { TransportMode } from "../types/ShippingRouteData";
 import { GPSJammingPoint } from "../types/GPSJamming";
+import { PowerOutage } from "../types/PowerOutage";
 
 // Component to handle map interactions like flying to coordinates
 const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert, selectedRailDisruption, selectedCountryBounds, routePreviews }: {
@@ -129,6 +130,8 @@ export interface MapComponentProps {
     visibleCategories?: Record<string, boolean>;
     gpsJammingPoints?: GPSJammingPoint[];
     showGPSJamming?: boolean;
+    checkedElectricityOutages?: PowerOutage[];
+    selectedElectricityOutage?: PowerOutage | null;
 }
 
 const MapComponent = ({
@@ -145,7 +148,9 @@ const MapComponent = ({
     checkedTradeCountries = [],
     visibleCategories = { "Road Works": false, "Accident": true, "Congestion": true, "Maritime": true, "Other": true },
     gpsJammingPoints = [],
-    showGPSJamming = false
+    showGPSJamming = false,
+    checkedElectricityOutages = [],
+    selectedElectricityOutage = null
 }: MapComponentProps) => {
     const [events, setEvents] = useState<TrafficEvent[]>([]);
     const [countryData, setCountryData] = useState<any>(null); // GeoJSON FeatureCollection
@@ -343,6 +348,40 @@ const MapComponent = ({
             iconSize: [12, 12],
             iconAnchor: [6, 6],
             popupAnchor: [0, -8],
+        });
+    };
+
+    const createElectricityIcon = (provider: string, status: string) => {
+        const providerColors: Record<string, string> = {
+            'ukpn': '#3b82f6',     // blue
+            'nationalgrid': '#a855f7', // purple
+            'northernpowergrid': '#10b981' // emerald
+        };
+        const color = providerColors[provider] || '#eab308'; // fallback yellow
+        const isActive = status === 'active' || status === 'investigating';
+
+        return L.divIcon({
+            className: "electricity-marker",
+            html: `<div style="
+                background-color: ${color};
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                border: 2px solid white;
+                box-shadow: 0 0 8px ${color}80;
+                ${isActive ? 'animation: pulse 1.5s infinite;' : ''}
+            "><div style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-size: 8px;
+                font-weight: bold;
+            ">⚡</div></div>`,
+            iconSize: [14, 14],
+            iconAnchor: [7, 7],
+            popupAnchor: [0, -10],
         });
     };
 
@@ -630,7 +669,7 @@ const MapComponent = ({
                             </Popup>
                         </Marker>
                     ))}
-                
+
                 {/* GPS Jamming Hexagon Heatmap */}
                 {showGPSJamming && gpsJammingPoints.map((point) => (
                     <Polygon
@@ -657,6 +696,54 @@ const MapComponent = ({
                         </Popup>
                     </Polygon>
                 ))}
+
+                {/* Electricity Outage Markers */}
+                {(() => {
+                    // Deduplicate outages by id
+                    const seen = new Set<string>();
+                    const allOutages = [...checkedElectricityOutages, ...(selectedElectricityOutage && !checkedElectricityOutages.find(o => o.id === selectedElectricityOutage.id) ? [selectedElectricityOutage] : [])];
+                    return allOutages
+                        .filter((o: PowerOutage) => {
+                            if (seen.has(o.id) || o.lat === 0 || o.lon === 0) return false;
+                            seen.add(o.id);
+                            return true;
+                        })
+                        .map((outage: PowerOutage, idx: number) => (
+                            <Marker
+                                key={`electricity-${outage.id}-${idx}`}
+                                position={[outage.lat, outage.lon]}
+                                icon={createElectricityIcon(outage.provider, outage.status)}
+                            >
+                                <Popup>
+                                    <div className="min-w-[200px]">
+                                        <div className="font-bold text-yellow-600 flex items-center gap-1">
+                                            ⚡ {outage.providerName}
+                                        </div>
+                                        <div className="text-sm mt-1">{outage.title}</div>
+                                        {outage.region && (
+                                            <div className="text-xs text-zinc-500">{outage.region}</div>
+                                        )}
+                                        <div className="flex gap-2 mt-2">
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${outage.status === 'active' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                                {outage.status}
+                                            </span>
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${outage.type === 'planned' ? 'bg-zinc-200 text-zinc-600' : 'bg-red-100 text-red-600'}`}>
+                                                {outage.type}
+                                            </span>
+                                        </div>
+                                        {outage.customersAffected !== undefined && outage.customersAffected > 0 && (
+                                            <div className="text-xs mt-2">Customers affected: {outage.customersAffected.toLocaleString()}</div>
+                                        )}
+                                        {outage.estimatedRestoration && (
+                                            <div className="text-xs text-yellow-600 mt-1">
+                                                Est. restore: {new Date(outage.estimatedRestoration).toLocaleString()}
+                                            </div>
+                                        )}
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        ))
+                })()}
 
             </MapContainer>
 

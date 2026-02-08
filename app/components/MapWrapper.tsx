@@ -14,6 +14,7 @@ import { Notam } from '../types/Notam';
 import { WeatherAlert } from '../types/WeatherAlert';
 import { RailDisruption } from '../types/RailDisruption';
 import { GPSJammingPoint } from '../types/GPSJamming';
+import { PowerOutage } from '../types/PowerOutage';
 
 interface MapWrapperProps {
     selectedWarning?: NavigationWarning | null;
@@ -30,6 +31,8 @@ interface MapWrapperProps {
     selectedRailDisruption?: RailDisruption | null;
     gpsJammingPoints?: GPSJammingPoint[];
     showGPSJamming?: boolean;
+    checkedElectricityOutages?: PowerOutage[];
+    selectedElectricityOutage?: PowerOutage | null;
 }
 
 export default function MapWrapper({
@@ -46,7 +49,9 @@ export default function MapWrapper({
     checkedRailDisruptions = [],
     selectedRailDisruption = null,
     gpsJammingPoints = [],
-    showGPSJamming = false
+    showGPSJamming = false,
+    checkedElectricityOutages = [],
+    selectedElectricityOutage = null
 }: MapWrapperProps) {
     return <Map
         selectedWarning={selectedWarning}
@@ -63,5 +68,7 @@ export default function MapWrapper({
         selectedRailDisruption={selectedRailDisruption}
         gpsJammingPoints={gpsJammingPoints}
         showGPSJamming={showGPSJamming}
+        checkedElectricityOutages={checkedElectricityOutages}
+        selectedElectricityOutage={selectedElectricityOutage}
     />;
 }
