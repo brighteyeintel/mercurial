@@ -11,6 +11,7 @@ import { RoutePreviewData } from "../hooks/useRoutePreview";
 import { Notam } from "../types/Notam";
 import { WeatherAlert } from "../types/WeatherAlert";
 import { TransportMode } from "../types/ShippingRouteData";
+import { GPSJammingPoint } from "../types/GPSJamming";
 
 // Component to handle map interactions like flying to coordinates
 const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert, selectedCountryBounds, routePreviews }: {
@@ -113,6 +114,8 @@ export interface MapComponentProps {
     checkedWeatherAlerts?: WeatherAlert[];
     checkedTradeCountries?: string[];
     visibleCategories?: Record<string, boolean>;
+    gpsJammingPoints?: GPSJammingPoint[];
+    showGPSJamming?: boolean;
 }
 
 const MapComponent = ({
@@ -125,7 +128,9 @@ const MapComponent = ({
     checkedNotams = [],
     checkedWeatherAlerts = [],
     checkedTradeCountries = [],
-    visibleCategories = { "Road Works": false, "Accident": true, "Congestion": true, "Maritime": true, "Other": true }
+    visibleCategories = { "Road Works": false, "Accident": true, "Congestion": true, "Maritime": true, "Other": true },
+    gpsJammingPoints = [],
+    showGPSJamming = false
 }: MapComponentProps) => {
     const [events, setEvents] = useState<TrafficEvent[]>([]);
     const [countryData, setCountryData] = useState<any>(null); // GeoJSON FeatureCollection
@@ -562,6 +567,33 @@ const MapComponent = ({
                             />
                         )}
                     </div>
+                ))}
+
+                {/* GPS Jamming Hexagon Heatmap */}
+                {showGPSJamming && gpsJammingPoints.map((point) => (
+                    <Polygon
+                        key={`gps-hex-${point.id}`}
+                        positions={point.boundary.map(b => [b.lat, b.lon])}
+                        pathOptions={{
+                            color: point.color,
+                            fillColor: point.color,
+                            fillOpacity: 0.6,
+                            weight: 1,
+                            opacity: 0.8
+                        }}
+                    >
+                        <Popup>
+                            <div className="font-bold" style={{ color: point.color }}>
+                                GPS Signal Quality: {(100 - point.percentage).toFixed(1)}%
+                            </div>
+                            <div className="text-xs text-zinc-600 mt-1">
+                                Low Quality: {point.lowQualityCount} / {point.totalAircraftCount} aircraft
+                            </div>
+                            <div className="text-xs text-zinc-500">
+                                {new Date(point.timestamp).toLocaleDateString()}
+                            </div>
+                        </Popup>
+                    </Polygon>
                 ))}
 
             </MapContainer>

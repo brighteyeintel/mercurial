@@ -12,8 +12,7 @@ const Map = dynamic<MapComponentProps>(() => import('./Map'), {
 
 import { Notam } from '../types/Notam';
 import { WeatherAlert } from '../types/WeatherAlert';
-
-// ... (dynamic import remains same)
+import { GPSJammingPoint } from '../types/GPSJamming';
 
 interface MapWrapperProps {
     selectedWarning?: NavigationWarning | null;
@@ -26,6 +25,8 @@ interface MapWrapperProps {
     checkedWeatherAlerts?: WeatherAlert[];
     checkedTradeCountries?: string[];
     visibleCategories?: Record<string, boolean>;
+    gpsJammingPoints?: GPSJammingPoint[];
+    showGPSJamming?: boolean;
 }
 
 export default function MapWrapper({
@@ -38,7 +39,9 @@ export default function MapWrapper({
     checkedNotams = [],
     checkedWeatherAlerts = [],
     checkedTradeCountries = [],
-    visibleCategories = { "Road Works": false, "Accident": true, "Congestion": true, "Maritime": true, "Other": true }
+    visibleCategories = { "Road Works": false, "Accident": true, "Congestion": true, "Maritime": true, "Other": true },
+    gpsJammingPoints = [],
+    showGPSJamming = false
 }: MapWrapperProps) {
     return <Map
         selectedWarning={selectedWarning}
@@ -51,5 +54,7 @@ export default function MapWrapper({
         checkedWeatherAlerts={checkedWeatherAlerts}
         checkedTradeCountries={checkedTradeCountries}
         visibleCategories={visibleCategories}
+        gpsJammingPoints={gpsJammingPoints}
+        showGPSJamming={showGPSJamming}
     />;
 }

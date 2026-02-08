@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
-import { Globe, AlertTriangle, ChevronLeft, Ship, Plane, CloudLightning, Sun, CloudRain, Snowflake, Wind, Waves, Flame, Building2, Search, X, Train } from "lucide-react";
+import { Globe, AlertTriangle, ChevronLeft, Ship, Plane, CloudLightning, Sun, CloudRain, Snowflake, Wind, Waves, Flame, Building2, Search, X, Train, Radio } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { NavigationWarning } from '../types/NavigationWarning';
 import { Notam } from '../types/Notam';
 import { WeatherAlert } from '../types/WeatherAlert';
 import { TradeBarrier } from '../types/TradeBarrier';
+import { GPSJammingPoint, GPSJammingData } from '../types/GPSJamming';
 import ShippingRoutePanel from './ShippingRoutePanel';
 import { useRoutePreview } from "../hooks/useRoutePreview"; // Import Route Preview Hook
 
@@ -78,6 +79,13 @@ export default function RouteEditorPage() {
         "Other": true
     });
     const [isRoadsSidebarOpen, setIsRoadsSidebarOpen] = useState(false);
+
+    // GPS Jamming Layer State
+    const [gpsJammingPoints, setGpsJammingPoints] = useState<GPSJammingPoint[]>([]);
+    const [showGPSJamming, setShowGPSJamming] = useState(false);
+    const [isGPSSidebarOpen, setIsGPSSidebarOpen] = useState(false);
+    const [gpsAttribution, setGpsAttribution] = useState<string>('');
+    const [isGPSLoading, setIsGPSLoading] = useState(true);
 
     // Route Preview Hook
     const routePreviewHook = useRoutePreview();
@@ -191,6 +199,19 @@ export default function RouteEditorPage() {
                 }
             })
             .catch(err => console.error("Failed to fetch Trade Barriers", err));
+
+        // Fetch GPS Jamming Data
+        setIsGPSLoading(true);
+        fetch('/api/aviation/gps')
+            .then(res => res.json())
+            .then((data: GPSJammingData) => {
+                if (data.points) {
+                    setGpsJammingPoints(data.points);
+                    setGpsAttribution(data.attribution || '');
+                }
+            })
+            .catch(err => console.error("Failed to fetch GPS Jamming data", err))
+            .finally(() => setIsGPSLoading(false));
     }, []);
 
     // Filter Logic
@@ -387,6 +408,8 @@ export default function RouteEditorPage() {
                         checkedWeatherAlerts={weatherAlerts.filter(a => checkedWeatherIds.has(a.id || a.event))}
                         checkedTradeCountries={tradeBarriers.filter(b => checkedTradeBarrierIds.has(b.id)).map(b => b.country_or_territory.name)}
                         visibleCategories={visibleCategories}
+                        gpsJammingPoints={gpsJammingPoints}
+                        showGPSJamming={showGPSJamming}
                     />
 
                     {/* Overlay Title for Map Context */}
@@ -399,7 +422,7 @@ export default function RouteEditorPage() {
 
 
                     {/* Feature Toggles */}
-                    <div className={`absolute top-4 z-[1000] flex flex-col gap-2 transition-all duration-300 ${(isWarningsSidebarOpen || isNotamsSidebarOpen || isWeatherSidebarOpen || isRailSidebarOpen || isTradeSidebarOpen || isRoadsSidebarOpen)
+                    <div className={`absolute top-4 z-[1000] flex flex-col gap-2 transition-all duration-300 ${(isWarningsSidebarOpen || isNotamsSidebarOpen || isWeatherSidebarOpen || isRailSidebarOpen || isTradeSidebarOpen || isRoadsSidebarOpen || isGPSSidebarOpen)
                         ? 'left-[416px]'
                         : 'left-4'
                         }`}>
@@ -410,6 +433,7 @@ export default function RouteEditorPage() {
                                 setIsWeatherSidebarOpen(false);
                                 setIsTradeSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
+                                setIsGPSSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isWarningsSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Navigation Warnings"
@@ -424,6 +448,7 @@ export default function RouteEditorPage() {
                                 setIsWeatherSidebarOpen(false);
                                 setIsTradeSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
+                                setIsGPSSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isNotamsSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Aviation NOTAMs"
@@ -439,6 +464,7 @@ export default function RouteEditorPage() {
                                 setIsRailSidebarOpen(false);
                                 setIsTradeSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
+                                setIsGPSSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isWeatherSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Weather Alerts"
@@ -454,6 +480,7 @@ export default function RouteEditorPage() {
                                 setIsWeatherSidebarOpen(false);
                                 setIsTradeSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
+                                setIsGPSSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isRailSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Rail Disruptions"
@@ -469,6 +496,7 @@ export default function RouteEditorPage() {
                                 setIsWeatherSidebarOpen(false);
                                 setIsRailSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
+                                setIsGPSSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isTradeSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Trade Barriers"
@@ -484,11 +512,28 @@ export default function RouteEditorPage() {
                                 setIsWeatherSidebarOpen(false);
                                 setIsRailSidebarOpen(false);
                                 setIsTradeSidebarOpen(false);
+                                setIsGPSSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isRoadsSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Road Layers"
                         >
                             {isRoadsSidebarOpen ? <ChevronLeft className="h-5 w-5 text-zinc-300" /> : <AlertTriangle className="h-5 w-5 text-orange-500" />}
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setIsGPSSidebarOpen(!isGPSSidebarOpen);
+                                setIsWarningsSidebarOpen(false);
+                                setIsNotamsSidebarOpen(false);
+                                setIsWeatherSidebarOpen(false);
+                                setIsRailSidebarOpen(false);
+                                setIsTradeSidebarOpen(false);
+                                setIsRoadsSidebarOpen(false);
+                            }}
+                            className={`p-2 rounded-lg border shadow-xl transition-all ${isGPSSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
+                            title="Toggle GPS Jamming Layer"
+                        >
+                            {isGPSSidebarOpen ? <ChevronLeft className="h-5 w-5 text-zinc-300" /> : <Radio className="h-5 w-5 text-red-500" />}
                         </button>
                     </div>
 
@@ -897,6 +942,94 @@ export default function RouteEditorPage() {
                                         <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">{key}</span>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* GPS Jamming Sidebar Overlay */}
+                    {isGPSSidebarOpen && (
+                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col pt-16 shadow-2xl transition-transform">
+                            <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
+                                <h3 className="text-sm font-bold text-red-500 uppercase tracking-wider flex items-center gap-2">
+                                    <Radio className="h-4 w-4" />
+                                    GPS Jamming / RFI
+                                </h3>
+                                <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">
+                                    {gpsJammingPoints.filter(p => p.percentage > 0).length} affected
+                                </span>
+                            </div>
+
+                            <div className="p-4 space-y-4">
+                                <p className="text-xs text-zinc-500">
+                                    GPS signal quality data from Stanford WAAS-NAS. Hexagons show areas where aircraft reported degraded GPS signals.
+                                </p>
+
+                                {/* Toggle */}
+                                <div
+                                    className="flex items-center gap-3 group cursor-pointer"
+                                    onClick={() => setShowGPSJamming(prev => !prev)}
+                                >
+                                    <div className={`w-5 h-5 rounded border border-zinc-600 flex items-center justify-center transition-colors ${showGPSJamming ? 'bg-red-700/50' : 'bg-transparent'}`}>
+                                        {showGPSJamming && <div className="w-2.5 h-2.5 bg-white rounded-sm" />}
+                                    </div>
+                                    <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">Show GPS Jamming Layer</span>
+                                </div>
+
+                                {/* Legend */}
+                                <div className="border-t border-zinc-800 pt-4 mt-4">
+                                    <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-3">Signal Quality Legend</h4>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-4 h-4 rounded" style={{ backgroundColor: '#22c55e' }}></div>
+                                            <span className="text-xs text-zinc-400">Normal (0% issues)</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-4 h-4 rounded" style={{ backgroundColor: '#f97316' }}></div>
+                                            <span className="text-xs text-zinc-400">Minor (&lt;20% issues)</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-4 h-4 rounded" style={{ backgroundColor: '#ef4444' }}></div>
+                                            <span className="text-xs text-zinc-400">Degraded (20-30% issues)</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-4 h-4 rounded" style={{ backgroundColor: '#dc2626' }}></div>
+                                            <span className="text-xs text-zinc-400">Severe (30-50% issues)</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-4 h-4 rounded" style={{ backgroundColor: '#000000', border: '1px solid #333' }}></div>
+                                            <span className="text-xs text-zinc-400">Critical (&gt;50% issues)</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Stats */}
+                                <div className="border-t border-zinc-800 pt-4 mt-4">
+                                    <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-3">Statistics</h4>
+                                    {isGPSLoading ? (
+                                        <div className="flex items-center gap-2 py-4">
+                                            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                                            <span className="text-xs text-zinc-400">Fetching GPS data...</span>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="bg-zinc-900 rounded p-2 border border-zinc-800">
+                                                <div className="text-lg font-bold text-zinc-200">{gpsJammingPoints.length}</div>
+                                                <div className="text-[10px] text-zinc-500 uppercase">Total Cells</div>
+                                            </div>
+                                            <div className="bg-zinc-900 rounded p-2 border border-zinc-800">
+                                                <div className="text-lg font-bold text-red-400">{gpsJammingPoints.filter(p => p.percentage > 0).length}</div>
+                                                <div className="text-[10px] text-zinc-500 uppercase">Affected Cells</div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Attribution */}
+                                {gpsAttribution && (
+                                    <div className="text-[9px] text-zinc-600 border-t border-zinc-800 pt-3 mt-4">
+                                        {gpsAttribution}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
