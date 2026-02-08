@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react"
 import { ShippingRouteData, Stage, TransportMode, Transport, Holding, Location } from "../types/ShippingRouteData";
 import { Port, WorldPortsData } from "../types/Port";
-import { Plus, Trash2, Save, ArrowLeft, Box, Clock, Globe, Check, X, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Save, ArrowLeft, Box, Clock, Globe, Check, X, AlertTriangle, Edit } from "lucide-react";
 import Link from "next/link";
 
 // Helper to get initial empty location
@@ -55,7 +55,7 @@ export default function ShippingRoutePanel({
     clearAllPreviews,
     isLoadingAll = false
 }: ShippingRoutePanelProps) {
-    const [view, setView] = useState<'list' | 'edit'>('list');
+    const [view, setView] = useState<'list' | 'edit' | 'overview'>('list');
     const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
     const [routeIdPendingDelete, setRouteIdPendingDelete] = useState<string | null>(null);
     const [routeName, setRouteName] = useState("");
@@ -153,6 +153,12 @@ export default function ShippingRoutePanel({
     }, [status, session]);
 
     useEffect(() => {
+        if (view === 'overview' && stages.length > 0 && fetchAllRoutePreviews) {
+            fetchAllRoutePreviews(stages);
+        }
+    }, [view, stages, fetchAllRoutePreviews]);
+
+    useEffect(() => {
         fetch('/api/aviation/airports')
             .then(res => res.json())
             .then(data => {
@@ -172,7 +178,7 @@ export default function ShippingRoutePanel({
             .catch(err => console.error("Failed to fetch ports", err));
     }, []);
 
-    const loadRouteForEdit = async (id: string) => {
+    const loadRouteDetails = async (id: string, targetView: 'edit' | 'overview' = 'overview') => {
         if (status === "loading") {
             return;
         }
@@ -200,7 +206,7 @@ export default function ShippingRoutePanel({
             setRouteName(parsed.name);
             setGoodsType(parsed.goods_type);
             setStages(parsed.stages);
-            setView('edit');
+            setView(targetView);
         } catch (e) {
             setSaveError(e instanceof Error ? e.message : 'Failed to load route');
         } finally {
@@ -392,7 +398,7 @@ export default function ShippingRoutePanel({
             setSavedRouteId(savedId);
             setSelectedRouteId(savedId);
             await fetchRoutes();
-            setView('list');
+            setView('overview');
             clearAllPreviews?.();
         } catch (e) {
             setSaveError(e instanceof Error ? e.message : 'Failed to save route');
@@ -434,13 +440,28 @@ export default function ShippingRoutePanel({
                             className="inline-flex items-center justify-center rounded border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs font-bold text-zinc-200 shadow hover:bg-zinc-900 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-700 uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
                             disabled={isSaving}
                             onClick={() => {
-                                setView('list');
-                                clearAllPreviews?.();
+                                if (view === 'edit' && selectedRouteId) {
+                                    setView('overview');
+                                } else {
+                                    setView('list');
+                                    clearAllPreviews?.();
+                                }
                             }}
                         >
                             Back
                         </button>
-                        {fetchAllRoutePreviews && (
+
+                        {view === 'overview' && (
+                            <button
+                                className="inline-flex items-center justify-center rounded bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-blue-500 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 uppercase tracking-wider hover:cursor-pointer"
+                                onClick={() => setView('edit')}
+                            >
+                                <Edit className="mr-1.5 h-3.5 w-3.5" />
+                                Edit Route
+                            </button>
+                        )}
+
+                        {(view === 'edit' || view === 'overview') && fetchAllRoutePreviews && (
                             <button
                                 type="button"
                                 className="inline-flex items-center justify-center rounded bg-cyan-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-cyan-500 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-cyan-500 uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
@@ -460,14 +481,17 @@ export default function ShippingRoutePanel({
                                 )}
                             </button>
                         )}
-                        <button
-                            className="inline-flex items-center justify-center rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-emerald-500 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
-                            disabled={isSaving}
-                            onClick={onRouteSave}
-                        >
-                            <Save className="mr-1.5 h-3.5 w-3.5" />
-                            {isSaving ? 'Saving...' : selectedRouteId ? 'Save Changes' : 'Save'}
-                        </button>
+
+                        {view === 'edit' && (
+                            <button
+                                className="inline-flex items-center justify-center rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-emerald-500 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
+                                disabled={isSaving}
+                                onClick={onRouteSave}
+                            >
+                                <Save className="mr-1.5 h-3.5 w-3.5" />
+                                {isSaving ? 'Saving...' : selectedRouteId ? 'Save Changes' : 'Save'}
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
@@ -523,7 +547,7 @@ export default function ShippingRoutePanel({
                                                 <button
                                                     className={`flex-1 text-left hover:cursor-pointer ${isSaving ? 'hover:cursor-progress' : ''}`}
                                                     disabled={isSaving}
-                                                    onClick={() => loadRouteForEdit(r._id)}
+                                                    onClick={() => loadRouteDetails(r._id)}
                                                 >
                                                     {r.name}
                                                 </button>
@@ -573,6 +597,101 @@ export default function ShippingRoutePanel({
                                         ))}
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    ) : view === 'overview' ? (
+                        <div className="space-y-6">
+                            {/* Route Name Overview */}
+                            <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
+                                <h2 className="text-sm font-bold text-zinc-300 mb-3 flex items-center gap-2 uppercase tracking-wide">
+                                    <Box className="h-4 w-4 text-zinc-500" />
+                                    Route Overview
+                                </h2>
+                                <div className="space-y-4">
+                                    <div>
+                                        <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-0.5">Route Name</div>
+                                        <div className="text-sm font-medium text-white">{routeName || 'Untitled Route'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-0.5">Goods Type</div>
+                                        <div className="text-sm font-medium text-white">{goodsType || 'Not specified'}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Stages Overview */}
+                            <div className="space-y-3">
+                                <h2 className="text-sm font-bold text-zinc-300 flex items-center gap-2 uppercase tracking-wide px-1">
+                                    <Clock className="h-4 w-4 text-zinc-500" />
+                                    Stages ({stages.length})
+                                </h2>
+
+                                <div className="space-y-4 pt-2">
+                                    {stages.map((stage, index) => (
+                                        <div key={index} className="relative pl-8 pb-4 last:pb-0">
+                                            {/* Timeline track */}
+                                            {index < stages.length - 1 && (
+                                                <div className="absolute left-[15px] top-[30px] bottom-0 w-[2px] bg-zinc-800" />
+                                            )}
+
+                                            {/* Timeline point */}
+                                            <div className="absolute left-0 top-1 w-[32px] h-[32px] rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center z-10">
+                                                {stage.transport ? (
+                                                    <Globe className="h-4 w-4 text-cyan-500" />
+                                                ) : (
+                                                    <Clock className="h-4 w-4 text-amber-500" />
+                                                )}
+                                            </div>
+
+                                            <div className="rounded-lg border border-zinc-800 bg-zinc-900/20 p-3">
+                                                {stage.transport ? (
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[10px] font-bold text-cyan-500 uppercase tracking-wider">Transport • {stage.transport.mode.toUpperCase()}</span>
+                                                            {stage.transport.courier && (
+                                                                <span className="text-[10px] text-zinc-500 bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800">{stage.transport.courier}</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="grid grid-cols-[1fr,auto,1fr] gap-3 items-center">
+                                                            <div>
+                                                                <div className="text-[10px] text-zinc-500 uppercase font-bold">Origin</div>
+                                                                <div className="text-xs text-zinc-200 line-clamp-1">{stage.transport.source.name || stage.transport.source.code || 'Unknown'}</div>
+                                                            </div>
+                                                            <div className="text-zinc-600">→</div>
+                                                            <div className="text-right">
+                                                                <div className="text-[10px] text-zinc-500 uppercase font-bold">Destination</div>
+                                                                <div className="text-xs text-zinc-200 line-clamp-1">{stage.transport.destination.name || stage.transport.destination.code || 'Unknown'}</div>
+                                                            </div>
+                                                        </div>
+                                                        {(stage.transport.source.latitude !== 0 || stage.transport.source.longitude !== 0) && (
+                                                            <div className="text-[9px] text-zinc-600 font-mono">
+                                                                {stage.transport.source.latitude.toFixed(4)}, {stage.transport.source.longitude.toFixed(4)} → {stage.transport.destination.latitude.toFixed(4)}, {stage.transport.destination.longitude.toFixed(4)}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">Holding</span>
+                                                            {stage.holding!.duration && (
+                                                                <span className="text-[10px] text-zinc-500 bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800">{stage.holding!.duration}</span>
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-[10px] text-zinc-500 uppercase font-bold">Location</div>
+                                                            <div className="text-xs text-zinc-200">{stage.holding!.location || 'Unknown'}</div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {stages.length === 0 && (
+                                        <div className="text-center py-8 border border-dashed border-zinc-800 rounded-lg text-zinc-500 text-sm">
+                                            No stages defined for this route.
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ) : (
