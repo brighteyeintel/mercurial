@@ -504,9 +504,9 @@ export default function RouteEditorPage() {
                                 setIsWarningsSidebarOpen(!isWarningsSidebarOpen);
                                 setIsNotamsSidebarOpen(false);
                                 setIsWeatherSidebarOpen(false);
+                                setIsRailSidebarOpen(false);
                                 setIsTradeSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
-                                setIsGPSSidebarOpen(false);
                                 setIsGPSSidebarOpen(false);
                                 setIsElectricitySidebarOpen(false);
                                 setIsWaterSidebarOpen(false);
@@ -522,6 +522,7 @@ export default function RouteEditorPage() {
                                 setIsNotamsSidebarOpen(!isNotamsSidebarOpen);
                                 setIsWarningsSidebarOpen(false);
                                 setIsWeatherSidebarOpen(false);
+                                setIsRailSidebarOpen(false);
                                 setIsTradeSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
                                 setIsGPSSidebarOpen(false);
@@ -543,6 +544,8 @@ export default function RouteEditorPage() {
                                 setIsTradeSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
                                 setIsGPSSidebarOpen(false);
+                                setIsElectricitySidebarOpen(false);
+                                setIsWaterSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isWeatherSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Weather Alerts"
@@ -559,6 +562,8 @@ export default function RouteEditorPage() {
                                 setIsTradeSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
                                 setIsGPSSidebarOpen(false);
+                                setIsElectricitySidebarOpen(false);
+                                setIsWaterSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isRailSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Rail Disruptions"
@@ -575,6 +580,8 @@ export default function RouteEditorPage() {
                                 setIsRailSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
                                 setIsGPSSidebarOpen(false);
+                                setIsElectricitySidebarOpen(false);
+                                setIsWaterSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isTradeSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Trade Barriers"
@@ -591,6 +598,8 @@ export default function RouteEditorPage() {
                                 setIsRailSidebarOpen(false);
                                 setIsTradeSidebarOpen(false);
                                 setIsGPSSidebarOpen(false);
+                                setIsElectricitySidebarOpen(false);
+                                setIsWaterSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isRoadsSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Road Layers"
@@ -637,7 +646,6 @@ export default function RouteEditorPage() {
                         <button
                             onClick={() => {
                                 setIsWaterSidebarOpen(!isWaterSidebarOpen);
-                                setIsElectricitySidebarOpen(false);
                                 setIsWarningsSidebarOpen(false);
                                 setIsNotamsSidebarOpen(false);
                                 setIsWeatherSidebarOpen(false);
@@ -645,6 +653,7 @@ export default function RouteEditorPage() {
                                 setIsTradeSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
                                 setIsGPSSidebarOpen(false);
+                                setIsElectricitySidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isWaterSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Water Incidents"
@@ -1182,7 +1191,7 @@ export default function RouteEditorPage() {
 
                     {/* Electricity Outages Sidebar Overlay */}
                     {isElectricitySidebarOpen && (
-                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col pt-16 shadow-2xl transition-transform">
+                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col shadow-2xl transition-transform">
                             <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
                                 <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-wider flex items-center gap-2">
                                     <Zap className="h-4 w-4" />
@@ -1200,7 +1209,7 @@ export default function RouteEditorPage() {
                                             ? 'Deselect All' : 'Select All'}
                                     </button>
                                     <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">
-                                        {electricityOutages.filter(o => o.status === 'active' || o.status === 'investigating').length} active
+                                        {electricityOutages.filter(o => o.status === 'active' || o.status === 'investigating').length}
                                     </span>
                                 </div>
                             </div>
@@ -1337,7 +1346,7 @@ export default function RouteEditorPage() {
 
                     {/* Water Incidents Sidebar Overlay */}
                     {isWaterSidebarOpen && (
-                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col pt-16 shadow-2xl transition-transform">
+                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col shadow-2xl transition-transform">
                             <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
                                 <h3 className="text-sm font-bold text-cyan-500 uppercase tracking-wider flex items-center gap-2">
                                     <div className="relative">
@@ -1349,17 +1358,17 @@ export default function RouteEditorPage() {
                                     Yorkshire Water Incidents
                                 </h3>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">
-                                        {waterIncidents.length} active
-                                    </span>
                                     <button
                                         onClick={toggleAllWaterIncidents}
-                                        className="text-[10px] px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-cyan-400 rounded border border-zinc-700 transition-colors"
+                                        className="text-[10px] text-zinc-400 hover:text-zinc-200 px-2 py-0.5 border border-zinc-700 rounded hover:bg-zinc-800 transition-colors"
                                     >
                                         {waterIncidents.length > 0 && waterIncidents.every(i => checkedWaterIncidentRefs.has(i.incidentRef))
                                             ? 'Deselect All'
                                             : 'Select All'}
                                     </button>
+                                    <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">
+                                        {waterIncidents.length}
+                                    </span>
                                 </div>
                             </div>
 

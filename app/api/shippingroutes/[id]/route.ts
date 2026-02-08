@@ -1,5 +1,6 @@
 import { dbConnect } from '../../../lib/mongo';
 import { ShippingRouteModel } from '../../../models/ShippingRoute';
+import { EventModel } from '../../../models/Event';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/authOptions';
 
@@ -96,6 +97,13 @@ export async function PUT(request: Request, { params }: Params) {
         return Response.json({ error: 'Not found' }, { status: 404 });
     }
 
+    // Log the event
+    await EventModel.create({
+        user_email: email,
+        route_id: id,
+        action: 'Edit Route'
+    });
+
     return Response.json({ route: updated });
 }
 
@@ -125,6 +133,13 @@ export async function DELETE(_request: Request, { params }: Params) {
     if (!deleted) {
         return Response.json({ error: 'Not found' }, { status: 404 });
     }
+
+    // Log the event
+    await EventModel.create({
+        user_email: email,
+        route_id: id,
+        action: 'Delete Route'
+    });
 
     return Response.json({ ok: true });
 }

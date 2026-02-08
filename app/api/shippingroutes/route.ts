@@ -1,5 +1,6 @@
 import { dbConnect } from '../../lib/mongo';
 import { ShippingRouteModel } from '../../models/ShippingRoute';
+import { EventModel } from '../../models/Event';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../lib/authOptions';
 
@@ -60,5 +61,13 @@ export async function POST(request: Request) {
     }
 
     const created = await ShippingRouteModel.create({ user_email: email, name, goods_type, stages, monitors, feeds });
+    
+    // Log the event
+    await EventModel.create({
+        user_email: email,
+        route_id: created.name,
+        action: 'Create Route'
+    });
+
     return Response.json({ route: created.toObject() }, { status: 201 });
 }

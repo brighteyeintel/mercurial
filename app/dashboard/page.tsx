@@ -132,12 +132,12 @@ export default function DashboardPage() {
                     </a>
 
                     {/* Recent Activity */}
-                    <div className="group relative hover:cursor-pointer overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/50 p-8 hover:border-zinc-700 hover:bg-zinc-900 transition-all">
+                    <a href="/dashboard/recent-activity" className="group relative hover:cursor-pointer overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/50 p-8 hover:border-zinc-700 hover:bg-zinc-900 transition-all">
                         <h3 className="mb-2 text-xl font-bold text-white tracking-wide group-hover:text-sky-400 transition-colors">Recent Activity</h3>
                         <p className="text-zinc-400 leading-relaxed">
                         Check your recent optimization history.
                         </p>
-                    </div>
+                    </a>
 
                     {/* Settings */}
                     <div className="group relative hover:cursor-pointer overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/50 p-8 hover:border-zinc-700 hover:bg-zinc-900 transition-all">
