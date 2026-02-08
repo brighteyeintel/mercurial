@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
 import { Globe, AlertTriangle, ChevronLeft, ChevronRight, Layers, Ship, Plane, CloudLightning, Sun, CloudRain, Snowflake, Wind, Waves, Flame, Building2, Search, X, Train, Radio, Zap } from "lucide-react";
 import dynamic from 'next/dynamic';
@@ -21,6 +23,14 @@ const MapWrapper = dynamic(() => import('../components/MapWrapper'), {
 });
 
 export default function RouteEditorPage() {
+    const { data: session, status } = useSession();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (status === 'unauthenticated') {
+            router.push('/');
+        }
+    }, [status, router]);
     // Navigation Warnings State
     const [warnings, setWarnings] = useState<NavigationWarning[]>([]);
     const [filteredWarnings, setFilteredWarnings] = useState<NavigationWarning[]>([]);
@@ -454,6 +464,22 @@ export default function RouteEditorPage() {
             setCheckedWaterIncidentRefs(new Set(allRefs));
         }
     };
+
+
+    if (status === 'loading') {
+        return (
+            <div className="flex h-screen flex-col bg-black text-white">
+                <Navbar />
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-sky-500" />
+                </div>
+            </div>
+        );
+    }
+
+    if (!session) {
+        return null;
+    }
 
     return (
         <div className="flex h-screen flex-col bg-black text-white selection:bg-zinc-800 selection:text-zinc-100 overflow-hidden">
