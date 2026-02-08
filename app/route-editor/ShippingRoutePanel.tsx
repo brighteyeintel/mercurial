@@ -259,6 +259,49 @@ export default function ShippingRoutePanel({
         setStages(newStages);
     };
 
+    const resolveCoordinates = async (index: number, type: 'source' | 'destination') => {
+        const stage = stages[index];
+        if (!stage.transport) return;
+
+        const locationName = stage.transport[type].name;
+        if (!locationName || locationName.length < 2) return;
+
+        setIsSaving(true);
+        try {
+            const res = await fetch('/api/roads/get-place-coords', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description: locationName }),
+            });
+            const data = await res.json();
+
+            if (res.ok && data.lat && data.lng) {
+                const newStages = [...stages];
+                if (newStages[index].transport) {
+                    newStages[index] = {
+                        transport: {
+                            ...newStages[index].transport!,
+                            [type]: {
+                                ...newStages[index].transport![type],
+                                latitude: data.lat,
+                                longitude: data.lng,
+                                ...(data.formattedAddress ? { name: data.formattedAddress } : {})
+                            }
+                        } as Transport
+                    };
+                    setStages(newStages);
+                }
+            } else {
+                setSaveError(data.error || "Failed to resolve coordinates");
+            }
+        } catch (err) {
+            console.error("Failed to resolve coordinates", err);
+            setSaveError("Failed to connect to geocoding service");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const onRouteSave = async () => {
         if (status === "loading") {
             return;
@@ -602,14 +645,24 @@ export default function ShippingRoutePanel({
                                                     )}
                                                     {stage.transport.mode !== TransportMode.Flight && (
                                                         <div className="grid grid-cols-2 gap-2">
-                                                            <div className="col-span-2">
+                                                            <div className="col-span-2 flex gap-2">
                                                                 <input
                                                                     type="text"
-                                                                    className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                                                                    className="flex h-8 flex-1 rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
                                                                     placeholder="Location Name"
                                                                     value={stage.transport.source.name}
                                                                     onChange={(e) => updateTransportLocation(index, 'source', 'name', e.target.value)}
                                                                 />
+                                                                {stage.transport.mode === TransportMode.Road && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => resolveCoordinates(index, 'source')}
+                                                                        className="px-2 py-1 text-[10px] font-bold bg-zinc-800 text-zinc-300 rounded hover:bg-zinc-700 transition-colors uppercase"
+                                                                        disabled={isSaving || !stage.transport.source.name}
+                                                                    >
+                                                                        Resolve
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                             <input
                                                                 type="number"
@@ -659,14 +712,24 @@ export default function ShippingRoutePanel({
                                                     )}
                                                     {stage.transport.mode !== TransportMode.Flight && (
                                                         <div className="grid grid-cols-2 gap-2">
-                                                            <div className="col-span-2">
+                                                            <div className="col-span-2 flex gap-2">
                                                                 <input
                                                                     type="text"
-                                                                    className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                                                                    className="flex h-8 flex-1 rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
                                                                     placeholder="Location Name"
                                                                     value={stage.transport.destination.name}
                                                                     onChange={(e) => updateTransportLocation(index, 'destination', 'name', e.target.value)}
                                                                 />
+                                                                {stage.transport.mode === TransportMode.Road && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => resolveCoordinates(index, 'destination')}
+                                                                        className="px-2 py-1 text-[10px] font-bold bg-zinc-800 text-zinc-300 rounded hover:bg-zinc-700 transition-colors uppercase"
+                                                                        disabled={isSaving || !stage.transport.destination.name}
+                                                                    >
+                                                                        Resolve
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                             <input
                                                                 type="number"
