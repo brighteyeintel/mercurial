@@ -15,17 +15,17 @@ export default function Navbar() {
           <span className="text-3xl font-bold tracking-tight text-white uppercase font-mono">Mercur<span className="text-sky-400">ial</span></span>
         </Link>
         <nav className="hidden md:flex items-center gap-8">
-          <Link href="/#capabilities" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
+          <Link href="/#capabilities" className="text-md font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
             Capabilities
           </Link>
-          <Link href="/#solutions" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
+          <Link href="/#solutions" className="text-md font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
             Solutions
           </Link>
-          <Link href="/current-threats" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
+          <Link href="/current-threats" className="text-md font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
             Current Threats
           </Link>
           {session && (
-            <Link href="/route-editor" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
+            <Link href="/route-editor" className="text-md font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
               Route Editor
             </Link>
           )}
@@ -36,13 +36,17 @@ export default function Navbar() {
           ) : session ? (
             <div className="flex items-center gap-4">
               <Link href="/dashboard"
-                className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider hover:cursor-pointer"
+                className="text-md font-medium text-zinc-400 hover:text-white uppercase tracking-wider hover:cursor-pointer flex items-center transition-colors group"
               >
+                <svg className="w-5 h-5 mr-2 text-zinc-400 group-hover:animate-[pulse_0.5s_ease-in-out_1] group-hover:text-sky-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="7.25" r="5.73"/>
+                  <path d="M1.5,23.48l.37-2.05A10.3,10.3,0,0,1,12,13h0a10.3,10.3,0,0,1,10.13,8.45l.37,2.05" />
+                </svg>
                 {session.user?.name?.toUpperCase().replace(/ .*/, '') || session.user?.email?.toUpperCase().replace(/@.*/, '')}
               </Link>
               <button
                 onClick={() => signOut()}
-                className="min-w-[95px] hidden sm:inline-flex h-9 items-center justify-center rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 shadow hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300 disabled:pointer-events-none disabled:opacity-50 font-mono uppercase tracking-wide hover:cursor-pointer"
+                className="min-w-[95px] hidden sm:inline-flex h-9 items-center justify-center rounded-md bg-zinc-100 px-4 py-2 text-md font-medium text-zinc-900 shadow hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300 disabled:pointer-events-none disabled:opacity-50 font-mono uppercase tracking-wide hover:cursor-pointer"
               >
                 Logout
               </button>
@@ -51,13 +55,13 @@ export default function Navbar() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => signIn('github')}
-                className="text-sm font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider hover:cursor-pointer"
+                className="text-md font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider hover:cursor-pointer"
               >
                 Login
               </button>
               <button
                 onClick={() => signIn('github')}
-                className="min-w-[95px] hidden sm:inline-flex h-9 items-center justify-center rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 shadow hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300 disabled:pointer-events-none disabled:opacity-50 font-mono uppercase tracking-wide hover:cursor-pointer"
+                className="min-w-[95px] hidden sm:inline-flex h-9 items-center justify-center rounded-md bg-zinc-100 px-4 py-2 text-md font-medium text-zinc-900 shadow hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300 disabled:pointer-events-none disabled:opacity-50 font-mono uppercase tracking-wide hover:cursor-pointer"
               >
                 Sign Up
               </button>
