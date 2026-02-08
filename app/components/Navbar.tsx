@@ -46,9 +46,9 @@ export default function Navbar() {
               </Link>
               <button
                 onClick={() => signOut()}
-                className="min-w-[95px] hidden sm:inline-flex h-9 items-center justify-center rounded-md bg-zinc-100 px-4 py-2 text-md font-medium text-zinc-900 shadow hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300 disabled:pointer-events-none disabled:opacity-50 font-mono uppercase tracking-wide hover:cursor-pointer"
+                className="min-w-[100px] hidden sm:inline-flex h-9 items-center justify-center rounded-md bg-zinc-100 px-4 py-2 text-md font-medium text-zinc-900 shadow hover:bg-sky-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300 disabled:pointer-events-none disabled:opacity-50 font-mono uppercase tracking-wide hover:cursor-pointer"
               >
-                Logout
+                Sign Out
               </button>
             </div>
           ) : (
@@ -61,7 +61,7 @@ export default function Navbar() {
               </button>
               <button
                 onClick={() => signIn('github')}
-                className="min-w-[95px] hidden sm:inline-flex h-9 items-center justify-center rounded-md bg-zinc-100 px-4 py-2 text-md font-medium text-zinc-900 shadow hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300 disabled:pointer-events-none disabled:opacity-50 font-mono uppercase tracking-wide hover:cursor-pointer"
+                className="min-w-[100px] hidden sm:inline-flex h-9 items-center justify-center rounded-md bg-zinc-100 px-4 py-2 text-md font-medium text-zinc-900 shadow hover:bg-sky-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300 disabled:pointer-events-none disabled:opacity-50 font-mono uppercase tracking-wide hover:cursor-pointer"
               >
                 Sign Up
               </button>
