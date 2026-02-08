@@ -688,7 +688,8 @@ const CACHE_TTL_MS = 60 * 1000; // 60 seconds
  * @returns Map of route ID -> list of nearby RiskPoints
  */
 export async function getRisksNearUserRoutesMap(
-  userEmail: string
+  userEmail: string,
+  thresholdKm: number = 20
 ): Promise<Record<string, RiskPoint[]>> {
   // Fetch user's routes
   await dbConnect();
@@ -710,8 +711,6 @@ export async function getRisksNearUserRoutesMap(
   const risks = await fetchAllRisks();
 
   console.log(`[Risk Analysis] Found ${risks.length} total risks`);
-
-  console.log(`[Risk Analysis] Found ${risks.length} total risks, ${tradeBarriers.length} trade barriers`);
 
   const routeIdToRisks: Record<string, RiskPoint[]> = {};
 
@@ -803,7 +802,7 @@ export async function getDashboardRiskStats(
   thresholdKm: number = 20
 ): Promise<{ risksNearRoutes: number; routesAtRisk: number }> {
   try {
-    const routeIdToRisks = await getRisksNearUserRoutesMap(userEmail);
+    const routeIdToRisks = await getRisksNearUserRoutesMap(userEmail, thresholdKm);
 
     const uniqueRiskIds = new Set<string>();
     for (const risks of Object.values(routeIdToRisks)) {
@@ -841,7 +840,8 @@ export async function countRisksNearUserRoutes(
  * @deprecated Use getDashboardRiskStats instead for better performance in dashboard.
  */
 export async function countRoutesAtRisk(
-  userEmail: string
+  userEmail: string,
+  thresholdKm: number = 20
 ): Promise<number> {
   const { routesAtRisk } = await getDashboardRiskStats(userEmail, thresholdKm);
   return routesAtRisk;

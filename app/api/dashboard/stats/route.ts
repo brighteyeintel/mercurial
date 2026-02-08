@@ -2,7 +2,7 @@ import { dbConnect } from '../../../lib/mongo';
 import { ShippingRouteModel } from '../../../models/ShippingRoute';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/authOptions';
-import { getDashboardRiskStats } from '../../../lib/risk-analysis';
+import { countRisksNearUserRoutes, countRoutesAtRisk, getDashboardRiskStats } from '../../../lib/risk-analysis';
 
 export const runtime = 'nodejs';
 
