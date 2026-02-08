@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
 import path from 'path';
 import { promises as fs } from 'fs';
+import { searoute } from '../../../lib/searoute';
 
 import { WorldPortsData, Port } from '../../../types/Port';
 
-
-
-
-// ... existing imports ...
+interface RouteResponse {
+    origin: Port;
+    destination: Port;
+    path: number[][];
+    distance: number;
+    units: string;
+}
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -21,10 +25,6 @@ export async function GET(request: Request) {
     const sourcePortNum = parseInt(source, 10);
     const destPortNum = parseInt(destination, 10);
 
-    if (isNaN(sourcePortNum) || isNaN(destPortNum)) {
-        return NextResponse.json({ error: 'Invalid port numbers' }, { status: 400 });
-    }
-
     try {
         // Load Port Data to resolve coordinates
         // Optimization: Cache this in production
@@ -33,97 +33,63 @@ export async function GET(request: Request) {
         const data: WorldPortsData = JSON.parse(fileContents);
         const ports = Object.values(data.ports);
 
-        const sourcePort = ports.find(p => p.portNumber === sourcePortNum);
-        const destPort = ports.find(p => p.portNumber === destPortNum);
+        let sourcePort: Port | undefined;
+        let destPort: Port | undefined;
+
+        if (!isNaN(sourcePortNum)) {
+            sourcePort = ports.find(p => p.portNumber === sourcePortNum);
+        } else {
+            // Try finding by name (case-insensitive, partial match)
+            sourcePort = ports.find(p => p.portName.toLowerCase().includes(source.toLowerCase()));
+        }
+
+        if (!isNaN(destPortNum)) {
+            destPort = ports.find(p => p.portNumber === destPortNum);
+        } else {
+            // Try finding by name (case-insensitive, partial match)
+            destPort = ports.find(p => p.portName.toLowerCase().includes(destination.toLowerCase()));
+        }
 
         if (!sourcePort || !destPort) {
+            console.error(`Ports not found for source: ${source}, destination: ${destination}`);
             return NextResponse.json({ error: 'One or both ports not found' }, { status: 404 });
         }
 
-        // Construct MarinePlan API URL
-        const baseUrl = "https://marineplan.net/api/routing/1/plan.json";
-        const apiKey = "adc8d21f-6f98-4f82-bfd7-1b7983ddf7a0";
-        const params = new URLSearchParams({
-            key: apiKey,
-            language: "en",
-            challenging: "1",
-            attractive: "0",
-            avoidbigcanals: "0",
-            avoidlocks: "0",
-            avoidobstructions: "0",
-            avoidopenwater: "0",
-            alternatives: "0",
-            allowmastdown: "0",
-            ignoreblocks: "0",
-            ignoreengine: "0",
-            ignoreoneway: "0",
-            avoidrules: "tss",
-            from: `${sourcePort.latitude.toFixed(4)},${sourcePort.longitude.toFixed(4)}`,
-            to: `${destPort.latitude.toFixed(4)},${destPort.longitude.toFixed(4)}`,
-            vessel: "4",
-            width: "3",
-            weight: "1000",
-            depth: "1",
-            length: "10",
-            minheight: "2",
-            maxheight: "2",
-            maxspeed: "12",
-            nominalspeed: "9",
-            consumptionperhour: "0",
-            fueltype: "LIQUID"
-        });
+        // Calculate Sea Route using local logic
+        console.log(`[SeaRoute] Source: ${sourcePort.portName} (${sourcePort.latitude}, ${sourcePort.longitude})`);
+        console.log(`[SeaRoute] Dest: ${destPort.portName} (${destPort.latitude}, ${destPort.longitude})`);
 
-        const queryString = params.toString().replace(/%2C/g, ',');
+        // searoute expects [lon, lat] - local implementation expects Position
+        const originCoords = [sourcePort.longitude, sourcePort.latitude];
+        const destCoords = [destPort.longitude, destPort.latitude];
 
-        console.log(`${baseUrl}?${queryString}`)
+        console.log(`[SeaRoute] Calling local searoute with origin: ${originCoords}, dest: ${destCoords}`);
 
-        const marineResponse = await fetch(`${baseUrl}?${queryString}`, {
-            headers: {
-                "Accept": "*/*",
-                "Accept-Encoding": "gzip, deflate, br, zstd",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Connection": "keep-alive",
-                "Host": "marineplan.net",
-                "Origin": "https://maps.marineplan.com",
-                "Referer": "https://maps.marineplan.com/",
-                "Sec-Fetch-Dest": "empty",
-                "Sec-Fetch-Mode": "cors",
-                "Sec-Fetch-Site": "cross-site",
-                "Sec-GPC": "1",
-                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
-                "sec-ch-ua": '"Not(A:Brand";v="8", "Chromium";v="144", "Brave";v="144"',
-                "sec-ch-ua-mobile": "?0",
-                "sec-ch-ua-platform": '"Linux"'
-            }
-        });
+        const route = searoute(originCoords, destCoords);
 
-        if (!marineResponse.ok) {
-            throw new Error(`MarinePlan API failed: ${marineResponse.statusText}`);
-        }
+        if (route && route.geometry && route.geometry.coordinates) {
+            console.log(`[SeaRoute] Route found, distance: ${route.properties.length}`);
+            const pathCoords = route.geometry.coordinates;
 
-        const marineData = await marineResponse.json();
+            const distance = route.properties.length;
 
-        if (marineData.planResult === "OK" && marineData.routes && marineData.routes.length > 0) {
-            const polylinePoints = marineData.routes[0].polyline.points;
-            // Convert to [lon, lat] for GeoJSON/Frontend standard (frontend expects [lon, lat] from this API now? 
-            // Wait, previous frontend code expected [lon,lat] from API and swapped it.
-            // MarinePlan returns {latitude, longitude} objects.
-
-            const pathCoords = polylinePoints.map((p: any) => [p.longitude, p.latitude]);
-
-            return NextResponse.json({
+            const response: RouteResponse = {
                 origin: sourcePort,
                 destination: destPort,
-                path: pathCoords, // Helper for frontend simple array
-                distance: marineData.routes[0].summary?.distanceMeters ? marineData.routes[0].summary.distanceMeters / 1852 : 0,
+                path: pathCoords,
+                distance: distance,
                 units: 'nautical_miles'
-            });
+            };
+
+            return NextResponse.json(response);
         } else {
-            return NextResponse.json({ error: 'No route found by MarinePlan' }, { status: 404 });
+            console.warn('[SeaRoute] No route found by local logic');
+            return NextResponse.json({ error: 'No route found' }, { status: 404 });
         }
 
-    } catch (error) {
-        console.error('Error fetching marine route:', error);
-        return NextResponse.json({ error: 'Failed to fetch route' }, { status: 500 });
+    } catch (error: any) {
+        console.error('Error calculating sea route:', error);
+        console.error('Error stack:', error.stack);
+        return NextResponse.json({ error: `Failed to calculate route: ${error.message}` }, { status: 500 });
     }
 }

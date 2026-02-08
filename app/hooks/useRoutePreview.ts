@@ -60,7 +60,7 @@ async function fetchSeaRoute(origin: string, destination: string): Promise<[numb
         const response = await fetch(`/api/maritime/navigation?source=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`);
 
         if (!response.ok) {
-            console.error("Failed to fetch sea route");
+
             return null;
         }
 

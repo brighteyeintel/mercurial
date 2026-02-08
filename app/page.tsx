@@ -29,20 +29,7 @@ export default async function Home({ status, session }: { status: string, sessio
                 Mercurial empowers logistics providers to foresee supply chain disruptions.
                 Monitor maritime, air, and road traffic in real-time. Integrate global news feeds for predictive risk analysis.
               </p>
-              <div className="flex flex-col gap-4 sm:flex-row mt-6">
-                <Link
-                  href="#"
-                  className="inline-flex h-12 items-center justify-center rounded bg-white px-8 text-sm font-medium text-zinc-950 shadow transition-colors hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-950 disabled:pointer-events-none disabled:opacity-50 uppercase tracking-wider font-mono"
-                >
-                  Get Started
-                </Link>
-                <Link
-                  href="#"
-                  className="inline-flex h-12 items-center justify-center rounded border border-zinc-800 bg-zinc-950 px-8 text-sm font-medium text-zinc-300 shadow-sm transition-colors hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300 disabled:pointer-events-none disabled:opacity-50 uppercase tracking-wider font-mono hover:text-sky-400"
-                >
-                  View Demo
-                </Link>
-              </div>
+
             </div>
           </div>
         </section>

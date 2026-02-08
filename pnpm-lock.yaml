@@ -14,9 +14,27 @@ importers:
       '@googlemaps/polyline-codec':
         specifier: ^1.0.28
         version: 1.0.28
+      '@turf/helpers':
+        specifier: ^7.3.4
+        version: 7.3.4
+      '@turf/length':
+        specifier: ^7.3.4
+        version: 7.3.4
+      '@turf/meta':
+        specifier: ^7.3.4
+        version: 7.3.4
+      '@turf/point-to-line-distance':
+        specifier: ^7.3.4
+        version: 7.3.4
+      '@turf/rhumb-distance':
+        specifier: ^7.3.4
+        version: 7.3.4
       countup.js:
         specifier: ^2.9.0
         version: 2.9.0
+      geojson-path-finder:
+        specifier: ^2.1.0
+        version: 2.1.0
       h3-js:
         specifier: ^4.4.0
         version: 4.4.0
@@ -568,6 +586,45 @@ packages:
 
   '@tailwindcss/postcss@4.1.18':
     resolution: {integrity: sha512-Ce0GFnzAOuPyfV5SxjXGn0CubwGcuDB0zcdaPuCSzAa/2vII24JTkH+I6jcbXLb1ctjZMZZI6OjDaLPJQL1S0g==}
+
+  '@turf/bearing@7.3.4':
+    resolution: {integrity: sha512-zvFjapyFaOrM8nBtAND7f4yb0BJV0jyj6cyoXyTYqLY+3Hn0eHgL0M8lwxDLbTom5KfqYDHDVDQC3+VSfypoEA==}
+
+  '@turf/clone@7.3.4':
+    resolution: {integrity: sha512-pwQ+RyQw986uu7IulY/18NRAebwZZScb084bvVqVkTrllwLSv4oVBqUxmUMiwtp+PNdiRGRFOvNyZqtRsiD+Jw==}
+
+  '@turf/distance@7.3.4':
+    resolution: {integrity: sha512-9drWgd46uHPPyzgrcRQLgSvdS/SjVlQ6ZIBoRQagS5P2kSjUbcOXHIMeOSPwfxwlKhEtobLyr+IiR2ns1TfF8w==}
+
+  '@turf/explode@7.3.4':
+    resolution: {integrity: sha512-7QWhp3f8jhrWjvArhJ74hXBFHMaiJr/2Y1PzHCWue2/pC5MbbTV0o7peehwrrrJC/1uD6CVb3hlcb77IxtMQkw==}
+
+  '@turf/helpers@7.3.4':
+    resolution: {integrity: sha512-U/S5qyqgx3WTvg4twaH0WxF3EixoTCfDsmk98g1E3/5e2YKp7JKYZdz0vivsS5/UZLJeZDEElOSFH4pUgp+l7g==}
+
+  '@turf/invariant@7.3.4':
+    resolution: {integrity: sha512-88Eo4va4rce9sNZs6XiMJowWkikM3cS2TBhaCKlU+GFHdNf8PFEpiU42VDU8q5tOF6/fu21Rvlke5odgOGW4AQ==}
+
+  '@turf/length@7.3.4':
+    resolution: {integrity: sha512-Dg1GnQ/B2go5NIWXt91N4L7XTjIgIWCftBSYIXkrpIM7QGjItzglek0Z5caytvb8ZRWXzZOGs8//+Q5we91WuQ==}
+
+  '@turf/meta@7.3.4':
+    resolution: {integrity: sha512-tlmw9/Hs1p2n0uoHVm1w3ugw1I6L8jv9YZrcdQa4SH5FX5UY0ATrKeIvfA55FlL//PGuYppJp+eyg/0eb4goqw==}
+
+  '@turf/nearest-point-on-line@7.3.4':
+    resolution: {integrity: sha512-DQrP3lRju83rIXFN68tUEpc7ki/eRwdwBkK2CTT4RAcyCxbcH2NGJPQv8dYiww/Ar77u1WLVn+aINXZH904dWw==}
+
+  '@turf/point-to-line-distance@7.3.4':
+    resolution: {integrity: sha512-IdPAxlAQZj7FCZg+ObyVHlNdqwLL/oxYoQjpxMNJ511gNxokCtEv0aeRZQjYOYIxr9Ss97v3yo3ILJaF9V2kPw==}
+
+  '@turf/projection@7.3.4':
+    resolution: {integrity: sha512-p91zOaLmzoBHzU/2H6Ot1tOhTmAom85n1P7I4Oo0V9xU8hmJXWfNnomLFf/6rnkKDIFZkncLQIBz4iIecZ61sA==}
+
+  '@turf/rhumb-bearing@7.3.4':
+    resolution: {integrity: sha512-tvX1toSo80q0iL0cUMMXpSKsCCfOjRqDGCmOdR6B9shhk6xP1ZM2PLQDr+MFPBFeGyQuyY4CNFkV2+3DF49vYw==}
+
+  '@turf/rhumb-distance@7.3.4':
+    resolution: {integrity: sha512-phwskeijdgYMsR3qDQmytfsg2iZcp3uWK7UFc76wKTEpxozbDGFI4enX5gXvZPpyI1iD7gsktGqHsO33AjnFDA==}
 
   '@tybys/wasm-util@0.10.1':
     resolution: {integrity: sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg==}
@@ -1205,6 +1262,9 @@ packages:
   gensync@1.0.0-beta.2:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
     engines: {node: '>=6.9.0'}
+
+  geojson-path-finder@2.1.0:
+    resolution: {integrity: sha512-ngg+rxoUSkhjOpKaQ2VpuvY6v2o/12JF1JF09AUzMg5iOVJ2dKLfT4vr8NleEk5pVwmx3nANyH8rK8mCn90LSA==}
 
   get-intrinsic@1.3.0:
     resolution: {integrity: sha512-9fSjSaos/fRIVIp+xSJlE6lfwhES7LNtKaCBIamHsjr2na1BiABJPo0mOjjz8GJDURarmCPGqaiVg5mfjb98CQ==}
@@ -2041,6 +2101,9 @@ packages:
     resolution: {integrity: sha512-j2Zq4NyQYG5XMST4cbs02Ak8iJUdxRM0XI5QyxXuZOzKOINmWurp3smXu3y5wDcJrptwpSjgXHzIQxR0omXljQ==}
     engines: {node: '>=12.0.0'}
 
+  tinyqueue@2.0.3:
+    resolution: {integrity: sha512-ppJZNDuKGgxzkHihX8v9v9G5f+18gzaTfrukGrq6ueg0lmH4nqVnA2IPG0AEH3jKEk2GRJCUhDoqpoiw3PHLBA==}
+
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
@@ -2629,6 +2692,103 @@ snapshots:
       '@tailwindcss/oxide': 4.1.18
       postcss: 8.5.6
       tailwindcss: 4.1.18
+
+  '@turf/bearing@7.3.4':
+    dependencies:
+      '@turf/helpers': 7.3.4
+      '@turf/invariant': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/clone@7.3.4':
+    dependencies:
+      '@turf/helpers': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/distance@7.3.4':
+    dependencies:
+      '@turf/helpers': 7.3.4
+      '@turf/invariant': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/explode@7.3.4':
+    dependencies:
+      '@turf/helpers': 7.3.4
+      '@turf/meta': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/helpers@7.3.4':
+    dependencies:
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/invariant@7.3.4':
+    dependencies:
+      '@turf/helpers': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/length@7.3.4':
+    dependencies:
+      '@turf/distance': 7.3.4
+      '@turf/helpers': 7.3.4
+      '@turf/meta': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/meta@7.3.4':
+    dependencies:
+      '@turf/helpers': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/nearest-point-on-line@7.3.4':
+    dependencies:
+      '@turf/distance': 7.3.4
+      '@turf/helpers': 7.3.4
+      '@turf/invariant': 7.3.4
+      '@turf/meta': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/point-to-line-distance@7.3.4':
+    dependencies:
+      '@turf/bearing': 7.3.4
+      '@turf/distance': 7.3.4
+      '@turf/helpers': 7.3.4
+      '@turf/invariant': 7.3.4
+      '@turf/meta': 7.3.4
+      '@turf/nearest-point-on-line': 7.3.4
+      '@turf/projection': 7.3.4
+      '@turf/rhumb-bearing': 7.3.4
+      '@turf/rhumb-distance': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/projection@7.3.4':
+    dependencies:
+      '@turf/clone': 7.3.4
+      '@turf/helpers': 7.3.4
+      '@turf/meta': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/rhumb-bearing@7.3.4':
+    dependencies:
+      '@turf/helpers': 7.3.4
+      '@turf/invariant': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/rhumb-distance@7.3.4':
+    dependencies:
+      '@turf/helpers': 7.3.4
+      '@turf/invariant': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
 
   '@tybys/wasm-util@0.10.1':
     dependencies:
@@ -3429,6 +3589,13 @@ snapshots:
   generator-function@2.0.1: {}
 
   gensync@1.0.0-beta.2: {}
+
+  geojson-path-finder@2.1.0:
+    dependencies:
+      '@turf/distance': 7.3.4
+      '@turf/explode': 7.3.4
+      '@turf/helpers': 7.3.4
+      tinyqueue: 2.0.3
 
   get-intrinsic@1.3.0:
     dependencies:
@@ -4292,6 +4459,8 @@ snapshots:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.3)
       picomatch: 4.0.3
+
+  tinyqueue@2.0.3: {}
 
   to-regex-range@5.0.1:
     dependencies:

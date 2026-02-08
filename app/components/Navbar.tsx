@@ -18,9 +18,6 @@ export default function Navbar() {
           <Link href="/#capabilities" className="text-md font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
             Capabilities
           </Link>
-          <Link href="/#solutions" className="text-md font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
-            Solutions
-          </Link>
           <Link href="/current-threats" className="text-md font-medium text-zinc-400 hover:text-white transition-colors uppercase tracking-wider">
             Current Threats
           </Link>

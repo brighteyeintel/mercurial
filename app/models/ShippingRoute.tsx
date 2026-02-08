@@ -37,7 +37,7 @@ const TransportSchema = new mongoose.Schema(
 const HoldingSchema = new mongoose.Schema(
   {
     location: { type: String, required: true },
-    duration: { type: String, required: true },
+    duration: { type: String, required: false },
     additional: { type: String, required: false },
   },
   { _id: false }
@@ -69,8 +69,14 @@ const RouteSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Force re-compilation of the model to ensuring schema updates specific to monitors/feeds are applied
+// in development mode without requiring a server restart.
+if (models.ShippingRoute) {
+  delete models.ShippingRoute;
+}
+
 export const ShippingRouteModel: Model<ShippingRouteRecord> =
-  (models.ShippingRoute as Model<ShippingRouteRecord>) || model<ShippingRouteRecord>('ShippingRoute', RouteSchema, 'routes');
+  model<ShippingRouteRecord>('ShippingRoute', RouteSchema, 'routes');
 
 // Helpers
 

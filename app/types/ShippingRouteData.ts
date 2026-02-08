@@ -22,7 +22,7 @@ export interface Transport {
 
 export interface Holding {
   location: string;
-  duration: string;
+  duration?: string;
   additional?: string;
 }
 

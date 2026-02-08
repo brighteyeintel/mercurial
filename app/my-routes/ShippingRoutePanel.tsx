@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, type ChangeEvent, type MouseEvent } from "react";
+import { useState, useEffect, useMemo, useCallback, type ChangeEvent, type MouseEvent } from "react";
 import { useSession } from "next-auth/react"
 import { ShippingRouteData, Stage, TransportMode, Transport, Holding, Location } from "../types/ShippingRouteData";
 import { Port, WorldPortsData } from "../types/Port";
@@ -476,9 +476,9 @@ export default function ShippingRoutePanel({
         setFeeds(feeds.filter(f => f !== feed));
     };
 
-    // Fetch monitoring results when in overview and monitors exist
-    useEffect(() => {
-        if (view === 'overview' && monitors.length > 0) {
+    // Fetch monitoring results
+    const fetchMonitoringResults = useCallback(() => {
+        if (monitors.length > 0) {
             setIsMonitoringLoading(true);
             fetch('/api/monitoring', {
                 method: 'POST',
@@ -501,7 +501,14 @@ export default function ShippingRoutePanel({
         } else {
             setMonitorResults([]);
         }
-    }, [view, monitors, feeds]);
+    }, [monitors, feeds]);
+
+    // Trigger fetch when in overview and dependencies change
+    useEffect(() => {
+        if (view === 'overview') {
+            fetchMonitoringResults();
+        }
+    }, [view, fetchMonitoringResults]);
 
     return (
         <div className="h-full w-full bg-black flex flex-col">
@@ -837,10 +844,19 @@ export default function ShippingRoutePanel({
                             {/* Monitoring Results */}
                             {monitors.length > 0 && (
                                 <div className="space-y-3 pt-4 border-t border-zinc-800/50">
-                                    <h2 className="text-sm font-bold text-zinc-300 flex items-center gap-2 uppercase tracking-wide px-1">
-                                        <Newspaper className="h-4 w-4 text-zinc-500" />
-                                        Monitoring Results ({monitorResults.length})
-                                    </h2>
+                                    <div className="flex items-center justify-between px-1">
+                                        <h2 className="text-sm font-bold text-zinc-300 flex items-center gap-2 uppercase tracking-wide">
+                                            <Newspaper className="h-4 w-4 text-zinc-500" />
+                                            Monitoring Results ({monitorResults.length})
+                                        </h2>
+                                        <button
+                                            className="text-[10px] font-bold text-zinc-400 px-2 py-1 rounded bg-zinc-900 border border-zinc-800 hover:text-zinc-200 hover:bg-zinc-800 transition-colors uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                            onClick={fetchMonitoringResults}
+                                            disabled={isMonitoringLoading}
+                                        >
+                                            {isMonitoringLoading ? 'Scanning...' : 'Refresh'}
+                                        </button>
+                                    </div>
 
                                     {isMonitoringLoading ? (
                                         <div className="text-center py-8 text-zinc-500 text-sm animate-pulse">
@@ -1285,7 +1301,7 @@ export default function ShippingRoutePanel({
                                                                 type="text"
                                                                 className="flex h-9 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
                                                                 placeholder="e.g. 2h 30m"
-                                                                value={stage.holding.duration}
+                                                                value={stage.holding.duration || ''}
                                                                 onChange={(e) => updateHoldingField(index, 'duration', e.target.value)}
                                                             />
                                                         </div>
