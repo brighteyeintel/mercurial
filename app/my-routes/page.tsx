@@ -78,7 +78,7 @@ export default function RouteEditorPage() {
         "Accident": false,
         "Congestion": false,
         "Maritime": false,
-        "Other": true
+        "Other": false
     });
     const [isRoadsSidebarOpen, setIsRoadsSidebarOpen] = useState(false);
 
