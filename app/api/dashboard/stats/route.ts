@@ -20,8 +20,11 @@ export async function GET() {
         // 1. Number of routes saved by a user
         const savedRoutesCount = await ShippingRouteModel.countDocuments({ user_email: email });
 
-        // 2 & 3. Get risk-related stats in one pass
-        const { risksNearRoutes, routesAtRisk } = await getDashboardRiskStats(email, 20);
+        // 2. Number of risks near any user route (uses mode-specific thresholds)
+        const risksNearRoutes = await countRisksNearUserRoutes(email);
+
+        // 3. Number of routes with at least one risk
+        const routesAtRisk = await countRoutesAtRisk(email);
 
         return Response.json({
             savedRoutesCount,

@@ -1,11 +1,20 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, type ChangeEvent, type MouseEvent } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, type ChangeEvent, type MouseEvent } from "react";
 import { useSession } from "next-auth/react"
 import { ShippingRouteData, Stage, TransportMode, Transport, Holding, Location } from "../types/ShippingRouteData";
 import { Port, WorldPortsData } from "../types/Port";
 import { Plus, Trash2, Save, ArrowLeft, Box, Clock, Globe, Check, X, AlertTriangle, Edit, Rss, Newspaper, ExternalLink } from "lucide-react";
 import Link from "next/link";
+
+import { NavigationWarning } from "../types/NavigationWarning";
+import { Notam } from "../types/Notam";
+import { WeatherAlert } from "../types/WeatherAlert";
+import { TradeBarrier } from "../types/TradeBarrier";
+import { PowerOutage } from "../types/PowerOutage";
+import { WaterIncident } from "../types/WaterIncident";
+import { RailDisruption } from "../types/RailDisruption";
+import { GPSJammingPoint } from "../types/GPSJamming";
 
 // Helper to get initial empty location
 const getEmptyLocation = (): Location => ({
@@ -48,24 +57,50 @@ interface ShippingRoutePanelProps {
     fetchAllRoutePreviews?: (stages: Stage[]) => Promise<void>;
     clearAllPreviews?: () => void;
     isLoadingAll?: boolean;
-    routePreviews?: any[]; // Use any[] or import RoutePreviewData
+    routePreviews?: any[];
+    onToggleRisksOnMap?: (risks: RouteRiskPoint[], enable: boolean) => void;
+
+    // Full datasets for standardization
+    navigationWarnings?: NavigationWarning[];
+    notams?: Notam[];
+    weatherAlerts?: WeatherAlert[];
+    tradeBarriers?: TradeBarrier[];
+    railDisruptions?: RailDisruption[];
+    electricityOutages?: PowerOutage[];
+    waterIncidents?: WaterIncident[];
+    gpsJammingPoints?: GPSJammingPoint[];
 }
 
-interface RouteRiskPoint {
+export interface RouteRiskPoint {
     id: string;
     lat: number;
     lon: number;
-    type: 'weather' | 'navigation' | 'notam' | 'traffic' | 'jamming' | 'train-disruption';
+    type: 'weather' | 'navigation' | 'notam' | 'traffic' | 'jamming' | 'train-disruption' | 'trade-barrier' | 'electricity' | 'water';
     category?: string;
     severity?: number;
+    country?: string;
+    title?: string;
 }
 
 export default function ShippingRoutePanel({
     fetchAllRoutePreviews,
     clearAllPreviews,
     isLoadingAll = false,
-    routePreviews = []
+    routePreviews = [],
+    onToggleRisksOnMap,
+    navigationWarnings = [],
+    notams = [],
+    weatherAlerts = [],
+    tradeBarriers = [],
+    railDisruptions = [],
+    electricityOutages = [],
+    waterIncidents = [],
+    gpsJammingPoints = [],
 }: ShippingRoutePanelProps) {
+    // ... (existing state and logic)
+
+    // ... inside the detailed risk list rendering ...
+
     const [view, setView] = useState<'list' | 'edit' | 'overview'>('list');
     const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
     const [routeIdPendingDelete, setRouteIdPendingDelete] = useState<string | null>(null);
@@ -86,6 +121,7 @@ export default function ShippingRoutePanel({
     const [routeRisks, setRouteRisks] = useState<RouteRiskPoint[]>([]);
     const [isLoadingRisks, setIsLoadingRisks] = useState(false);
     const [risksError, setRisksError] = useState<string | null>(null);
+    const [showRisksOnMap, setShowRisksOnMap] = useState(false);
 
     const { data: session, status } = useSession()
 
@@ -798,47 +834,198 @@ export default function ShippingRoutePanel({
 
                             {/* Risks Overview */}
                             <div className="space-y-3">
-                                <h2 className="text-sm font-bold text-zinc-300 flex items-center gap-2 uppercase tracking-wide px-1">
-                                    <AlertTriangle className="h-4 w-4 text-zinc-500" />
-                                    Risks ({routeRisks.length})
-                                </h2>
-
-                                <div className="space-y-2 pt-2">
+                                <div className="flex items-center justify-between px-1">
+                                    <h2 className="text-sm font-bold text-zinc-300 flex items-center gap-2 uppercase tracking-wide">
+                                        <AlertTriangle className="h-4 w-4 text-zinc-500" />
+                                        Risks
+                                    </h2>
                                     {isLoadingRisks ? (
-                                        <div className="text-sm text-zinc-500 px-1">Loading risks...</div>
+                                        <div className="text-[10px] text-zinc-500">Loading...</div>
                                     ) : risksError ? (
-                                        <div className="rounded-lg border border-red-900/40 bg-red-950/20 px-4 py-3 text-sm text-red-200">{risksError}</div>
-                                    ) : routeRisks.length === 0 ? (
-                                        <div className="text-center py-6 border border-dashed border-zinc-800 rounded-lg text-zinc-500 text-sm">
-                                            No risks found near this route.
+                                        <div className="text-[10px] text-red-400">Error</div>
+                                    ) : routeRisks.length > 0 ? (
+                                        <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30">
+                                            <span className="text-xs font-bold text-amber-400">{routeRisks.length}</span>
+                                            <span className="text-[10px] text-amber-500/80 uppercase">identified</span>
                                         </div>
                                     ) : (
-                                        <div className="space-y-2">
-                                            {routeRisks.map((risk: RouteRiskPoint) => (
-                                                <div key={risk.id} className="rounded-lg border border-zinc-800 bg-zinc-900/20 p-3">
-                                                    <div className="flex items-start justify-between gap-2">
-                                                        <div className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">
-                                                            {risk.type.replace(/-/g, ' ')}
-                                                        </div>
-                                                        {typeof risk.severity === 'number' && (
-                                                            <div className="text-[10px] text-zinc-500 bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800 font-mono">
-                                                                {risk.severity}%
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {risk.category && (
-                                                        <div className="mt-1 text-xs text-zinc-300">{risk.category}</div>
-                                                    )}
-
-                                                    <div className="mt-2 text-[10px] text-zinc-600 font-mono">
-                                                        {risk.lat.toFixed(4)}, {risk.lon.toFixed(4)}
-                                                    </div>
-                                                </div>
-                                            ))}
+                                        <div className="text-[10px] text-emerald-500/80 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                                            No risks
                                         </div>
                                     )}
                                 </div>
+
+                                {routeRisks.length > 0 && (
+                                    <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-xs text-zinc-300">Show risks on map</span>
+                                            <span className="text-[10px] text-zinc-500">Highlight all identified risks</span>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                const newState = !showRisksOnMap;
+                                                setShowRisksOnMap(newState);
+                                                if (onToggleRisksOnMap) {
+                                                    onToggleRisksOnMap(routeRisks, newState);
+                                                }
+                                            }}
+                                            className={`
+                                                relative w-11 h-6 rounded-full transition-colors duration-200 cursor-pointer
+                                                ${showRisksOnMap ? 'bg-amber-500' : 'bg-zinc-700'}
+                                            `}
+                                        >
+                                            <span
+                                                className={`
+                                                    absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200
+                                                    ${showRisksOnMap ? 'translate-x-5' : 'translate-x-0'}
+                                                `}
+                                            />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Risk type breakdown */}
+                                {routeRisks.length > 0 && (
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {Object.entries(
+                                            routeRisks.reduce((acc, r) => {
+                                                acc[r.type] = (acc[r.type] || 0) + 1;
+                                                return acc;
+                                            }, {} as Record<string, number>)
+                                        ).map(([type, count]) => (
+                                            <div key={type} className="flex flex-col items-center gap-1 p-2 rounded-lg bg-zinc-900/50 border border-zinc-800">
+                                                <span className="text-sm font-bold text-zinc-200">{count}</span>
+                                                <span className="text-[9px] text-zinc-500 uppercase tracking-wider text-center">
+                                                    {type.replace(/-/g, ' ')}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Detailed Risk List */}
+                                {routeRisks.length > 0 && showRisksOnMap && (
+                                    <div className="space-y-2 mt-4 pt-4 border-t border-zinc-800/50">
+                                        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                                            Identified Risks Details
+                                        </h3>
+                                        {routeRisks.map((risk, idx) => {
+                                            // Find the full object based on type
+                                            let fullObject: any = null;
+                                            let displayTitle = risk.title || `${risk.type} detected nearby`;
+                                            let displayDescription = "";
+
+                                            switch (risk.type) {
+                                                case 'navigation':
+                                                    fullObject = navigationWarnings.find(w => w.reference === risk.id);
+                                                    if (fullObject) {
+                                                        displayTitle = fullObject.reference;
+                                                        displayDescription = fullObject.text || fullObject.details; // Fallback
+                                                    }
+                                                    break;
+                                                case 'notam':
+                                                    fullObject = notams.find(n => (n.id === risk.id) || (n.notamCode === risk.id));
+                                                    if (fullObject) {
+                                                        displayTitle = fullObject.notamCode || fullObject.id;
+                                                        displayDescription = fullObject.text || "";
+                                                    }
+                                                    break;
+                                                case 'weather':
+                                                    fullObject = weatherAlerts.find(w => (w.id === risk.id) || (w.event === risk.id));
+                                                    if (fullObject) {
+                                                        displayTitle = fullObject.event;
+                                                        displayDescription = fullObject.description || "";
+                                                    }
+                                                    break;
+                                                case 'trade-barrier':
+                                                    fullObject = tradeBarriers.find(b => b.id === risk.id);
+                                                    if (fullObject) {
+                                                        displayTitle = fullObject.title;
+                                                        displayDescription = fullObject.summary || "";
+                                                    }
+                                                    break;
+                                                case 'train-disruption':
+                                                    // Handle prefix logic if ID has prefix
+                                                    const railId = risk.id.replace('train-disruption-', '');
+                                                    fullObject = railDisruptions.find(r => r.id === railId);
+                                                    if (fullObject) {
+                                                        displayTitle = fullObject.title || fullObject.category || 'Rail Disruption';
+                                                        displayDescription = fullObject.description || "";
+                                                    }
+                                                    break;
+                                                case 'electricity':
+                                                    fullObject = electricityOutages.find(o => o.id === risk.id);
+                                                    if (fullObject) {
+                                                        displayTitle = `Power Outage: ${fullObject.provider}`;
+                                                        displayDescription = fullObject.reason || "Unspecified outage";
+                                                    }
+                                                    break;
+                                                case 'water':
+                                                    fullObject = waterIncidents.find(w => w.incidentRef === risk.id);
+                                                    if (fullObject) {
+                                                        displayTitle = `${fullObject.category} in ${fullObject.location}`;
+                                                        displayDescription = fullObject.status || "";
+                                                    }
+                                                    break;
+                                                case 'jamming':
+                                                    // GPS Jamming points usually come as a group, but we can try to find similar point
+                                                    // Often just a generic warning, but if we have points we can look for proximity
+                                                    displayTitle = "GPS Jamming / Interference";
+                                                    break;
+                                            }
+
+                                            return (
+                                                <div key={`${risk.id}-${idx}`} className="rounded border border-red-900/30 bg-red-950/10 p-3 hover:bg-red-950/20 transition-colors">
+                                                    <div className="flex items-start justify-between gap-2 mb-1">
+                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider border ${risk.severity && risk.severity > 3 ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                                                                risk.severity && risk.severity > 1 ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
+                                                                    'bg-zinc-800 text-zinc-400 border-zinc-700'
+                                                            }`}>
+                                                            {risk.type.replace(/-/g, ' ')}
+                                                        </span>
+                                                        {risk.severity && (
+                                                            <span className="text-[10px] text-zinc-500 font-mono">
+                                                                Lvl {risk.severity}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="font-medium text-zinc-200 text-sm mb-1 leading-snug">
+                                                        {displayTitle}
+                                                    </div>
+
+                                                    {/* Description preview if available */}
+                                                    {displayDescription && (
+                                                        <div className="text-[10px] text-zinc-500 mb-2 line-clamp-2">
+                                                            {displayDescription}
+                                                        </div>
+                                                    )}
+
+                                                    <div className="space-y-1 text-xs text-zinc-400">
+                                                        {risk.category && (
+                                                            <div className="flex gap-2">
+                                                                <span className="text-zinc-600 min-w-[60px]">Category:</span>
+                                                                <span className="text-zinc-300">{risk.category}</span>
+                                                            </div>
+                                                        )}
+                                                        {risk.country && (
+                                                            <div className="flex gap-2">
+                                                                <span className="text-zinc-600 min-w-[60px]">Country:</span>
+                                                                <span className="text-zinc-300">{risk.country}</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="flex gap-2">
+                                                            <span className="text-zinc-600 min-w-[60px]">Location:</span>
+                                                            <span className="font-mono text-zinc-500">
+                                                                {risk.lat !== 0 ? risk.lat.toFixed(4) : '?'} , {risk.lon !== 0 ? risk.lon.toFixed(4) : '?'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Monitoring Results */}

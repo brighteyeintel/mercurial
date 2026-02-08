@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
@@ -12,7 +12,7 @@ import { WeatherAlert } from '../types/WeatherAlert';
 import { TradeBarrier } from '../types/TradeBarrier';
 import { GPSJammingPoint, GPSJammingData } from '../types/GPSJamming';
 import { PowerOutage, ElectricityData } from '../types/PowerOutage';
-import ShippingRoutePanel from './ShippingRoutePanel';
+import ShippingRoutePanel, { RouteRiskPoint } from './ShippingRoutePanel';
 import { useRoutePreview } from "../hooks/useRoutePreview"; // Import Route Preview Hook
 import { RailDisruption } from '../types/RailDisruption';
 import { WaterIncident, WaterData } from '../types/WaterIncident';
@@ -104,6 +104,13 @@ export default function RouteEditorPage() {
     const [isWaterLoading, setIsWaterLoading] = useState(true);
     const [selectedWaterIncident, setSelectedWaterIncident] = useState<WaterIncident | null>(null);
     const [checkedWaterIncidentRefs, setCheckedWaterIncidentRefs] = useState<Set<string>>(new Set());
+
+    // Route Risk Highlighting State
+    const [highlightedRiskIds, setHighlightedRiskIds] = useState<string[]>([]);
+    const [showRisksOnMap, setShowRisksOnMap] = useState(false);
+
+    // Memoize as Set for O(1) lookups
+    const highlightedRiskIdsSet = useMemo(() => new Set(highlightedRiskIds), [highlightedRiskIds]);
 
     const [isRoutePanelOpen, setIsRoutePanelOpen] = useState(true);
 
@@ -465,6 +472,61 @@ export default function RouteEditorPage() {
         }
     };
 
+    // Auto-check sidebar items that match route risks when toggle is enabled
+    useEffect(() => {
+        if (!showRisksOnMap || highlightedRiskIds.length === 0) return;
+
+        // Auto-check navigation warnings that are route risks
+        filteredWarnings.forEach((warning) => {
+            if (highlightedRiskIdsSet.has(warning.reference) && !checkedWarningIds.has(warning.reference)) {
+                setCheckedWarningIds(prev => new Set([...prev, warning.reference]));
+            }
+        });
+
+        // Auto-check NOTAMs that are route risks
+        notams.forEach(notam => {
+            if (highlightedRiskIdsSet.has(notam.id) && !checkedNotamIds.has(notam.id || notam.notamCode)) {
+                setCheckedNotamIds(prev => new Set([...prev, notam.id || notam.notamCode]));
+            }
+        });
+
+        // Auto-check weather alerts that are route risks
+        weatherAlerts.forEach(alert => {
+            if (highlightedRiskIdsSet.has(alert.id) && !checkedWeatherIds.has(alert.id || alert.event)) {
+                setCheckedWeatherIds(prev => new Set([...prev, alert.id || alert.event]));
+            }
+        });
+
+        // Auto-check rail disruptions that are route risks
+        railDisruptions.forEach(d => {
+            const riskId = `train-disruption-${d.id}`;
+            if (highlightedRiskIdsSet.has(riskId) && !checkedRailDisruptionIds.has(d.id)) {
+                setCheckedRailDisruptionIds(prev => new Set([...prev, d.id]));
+            }
+        });
+
+        // Auto-check trade barriers that are route risks
+        filteredTradeBarriers.forEach(b => {
+            if (highlightedRiskIdsSet.has(b.id) && !checkedTradeBarrierIds.has(b.id)) {
+                setCheckedTradeBarrierIds(prev => new Set([...prev, b.id]));
+            }
+        });
+
+        // Auto-check electricity outages that are route risks
+        electricityOutages.forEach(o => {
+            if (highlightedRiskIdsSet.has(o.id) && !checkedOutageIds.has(o.id)) {
+                setCheckedOutageIds(prev => new Set([...prev, o.id]));
+            }
+        });
+
+        // Auto-check water incidents that are route risks
+        waterIncidents.forEach(i => {
+            if (highlightedRiskIdsSet.has(i.incidentRef) && !checkedWaterIncidentRefs.has(i.incidentRef)) {
+                setCheckedWaterIncidentRefs(prev => new Set([...prev, i.incidentRef]));
+            }
+        });
+    }, [showRisksOnMap, highlightedRiskIds, highlightedRiskIdsSet, filteredWarnings, notams, weatherAlerts, railDisruptions, filteredTradeBarriers, electricityOutages, waterIncidents]);
+
 
     if (status === 'loading') {
         return (
@@ -756,55 +818,72 @@ export default function RouteEditorPage() {
                             </div>
 
                             <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
-                                {filteredWarnings.map((warning, idx) => (
-                                    <div
-                                        key={idx}
-                                        onClick={() => setSelectedWarning(warning)}
-                                        className={`p-4 border-b border-zinc-800/50 cursor-pointer hover:bg-zinc-900/50 transition-colors ${selectedWarning === warning ? 'bg-amber-950/20 border-l-4 border-l-amber-500' : 'border-l-4 border-l-transparent'}`}
-                                    >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={checkedWarningIds.has(warning.reference)}
-                                                    onChange={(e) => toggleWarningCheck(warning.reference, e)}
-                                                    className="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-amber-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                                                />
-                                                <span className="font-bold text-sm text-zinc-200">{warning.reference}</span>
-                                            </div>
-                                            <div className="flex flex-col items-end gap-1">
-                                                <span className="text-[10px] font-mono text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded">{warning.datetime.split(' ')[0]}</span>
-                                                {warning.areaName && (
-                                                    <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-800/50 px-1.5 py-0.5 rounded border border-zinc-700/50">
-                                                        {warning.areaName}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {warning.isArea && (
-                                            <div className="mb-2 px-2 py-0.5 bg-red-950/30 text-red-400 text-[10px] font-bold uppercase w-fit rounded border border-red-900/30">
-                                                Area Warning
-                                            </div>
-                                        )}
-
-                                        <div className="space-y-1 text-xs text-zinc-400 font-mono leading-relaxed">
-                                            {/* Preamble */}
-                                            {warning.preamble.map((line, i) => (
-                                                <div key={`pre-${i}`}>{line}</div>
-                                            ))}
-
-                                            {/* Bullets */}
-                                            {warning.bullets.length > 0 && (
-                                                <div className="mt-2 pl-2 border-l border-zinc-700/50 space-y-1">
-                                                    {warning.bullets.map((bullet, i) => (
-                                                        <div key={`bull-${i}`} className="whitespace-pre-line">{bullet}</div>
-                                                    ))}
+                                {[...filteredWarnings]
+                                    .sort((a, b) => {
+                                        // Sort route risks to top when showRisksOnMap is enabled
+                                        const aIsRisk = showRisksOnMap && highlightedRiskIdsSet.has(a.reference);
+                                        const bIsRisk = showRisksOnMap && highlightedRiskIdsSet.has(b.reference);
+                                        if (aIsRisk && !bIsRisk) return -1;
+                                        if (!aIsRisk && bIsRisk) return 1;
+                                        return 0;
+                                    })
+                                    .map((warning, idx) => {
+                                        const isRouteRisk = showRisksOnMap && highlightedRiskIdsSet.has(warning.reference);
+                                        return (
+                                            <div
+                                                key={idx}
+                                                onClick={() => setSelectedWarning(warning)}
+                                                className={`p-4 border-b border-zinc-800/50 cursor-pointer hover:bg-zinc-900/50 transition-colors ${selectedWarning === warning ? 'bg-amber-950/20 border-l-4 border-l-amber-500' : isRouteRisk ? 'border-l-4 border-l-amber-400/50 bg-amber-950/10' : 'border-l-4 border-l-transparent'}`}
+                                            >
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checkedWarningIds.has(warning.reference)}
+                                                            onChange={(e) => toggleWarningCheck(warning.reference, e)}
+                                                            className="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-amber-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                                                        />
+                                                        <span className="font-bold text-sm text-zinc-200">{warning.reference}</span>
+                                                        {isRouteRisk && (
+                                                            <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 rounded border border-amber-500/30">
+                                                                Route Risk
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <span className="text-[10px] font-mono text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded">{warning.datetime.split(' ')[0]}</span>
+                                                        {warning.areaName && (
+                                                            <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-800/50 px-1.5 py-0.5 rounded border border-zinc-700/50">
+                                                                {warning.areaName}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
+
+                                                {warning.isArea && (
+                                                    <div className="mb-2 px-2 py-0.5 bg-red-950/30 text-red-400 text-[10px] font-bold uppercase w-fit rounded border border-red-900/30">
+                                                        Area Warning
+                                                    </div>
+                                                )}
+
+                                                <div className="space-y-1 text-xs text-zinc-400 font-mono leading-relaxed">
+                                                    {/* Preamble */}
+                                                    {warning.preamble.map((line, i) => (
+                                                        <div key={`pre-${i}`}>{line}</div>
+                                                    ))}
+
+                                                    {/* Bullets */}
+                                                    {warning.bullets.length > 0 && (
+                                                        <div className="mt-2 pl-2 border-l border-zinc-700/50 space-y-1">
+                                                            {warning.bullets.map((bullet, i) => (
+                                                                <div key={`bull-${i}`} className="whitespace-pre-line">{bullet}</div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                             </div>
                         </div>
                     )}
@@ -829,52 +908,68 @@ export default function RouteEditorPage() {
                             </div>
 
                             <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
-                                {railDisruptions.map((d) => (
-                                    <div
-                                        key={d.id}
-                                        onClick={() => setSelectedRailDisruption(d)}
-                                        className={`p-4 border-b border-zinc-800/50 cursor-pointer hover:bg-zinc-900/50 transition-colors ${selectedRailDisruption?.id === d.id ? 'bg-green-950/20 border-l-4 border-l-green-500' : 'border-l-4 border-l-transparent'}`}
-                                    >
-                                        <div className="flex justify-between items-start mb-2 gap-3">
-                                            <div className="flex items-start gap-3 flex-1">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={checkedRailDisruptionIds.has(d.id)}
-                                                    onChange={(e) => toggleRailDisruptionCheck(d.id, e)}
-                                                    className="mt-0.5 w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-green-500 focus:ring-0 focus:ring-offset-0 cursor-pointer flex-shrink-0"
-                                                />
-                                                <span className="font-bold text-xs text-zinc-200 line-clamp-2">{d.title}</span>
-                                            </div>
-                                            {d.status && (
-                                                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border flex-shrink-0 text-green-400 bg-green-950/30 border-green-900/30">
-                                                    {d.status}
-                                                </span>
-                                            )}
-                                        </div>
+                                {[...railDisruptions]
+                                    .sort((a, b) => {
+                                        const aIsRisk = showRisksOnMap && highlightedRiskIdsSet.has(`train-disruption-${a.id}`);
+                                        const bIsRisk = showRisksOnMap && highlightedRiskIdsSet.has(`train-disruption-${b.id}`);
+                                        if (aIsRisk && !bIsRisk) return -1;
+                                        if (!aIsRisk && bIsRisk) return 1;
+                                        return 0;
+                                    })
+                                    .map((d) => {
+                                        const isRouteRisk = showRisksOnMap && highlightedRiskIdsSet.has(`train-disruption-${d.id}`);
+                                        return (
+                                            <div
+                                                key={d.id}
+                                                onClick={() => setSelectedRailDisruption(d)}
+                                                className={`p-4 border-b border-zinc-800/50 cursor-pointer hover:bg-zinc-900/50 transition-colors ${selectedRailDisruption?.id === d.id ? 'bg-green-950/20 border-l-4 border-l-green-500' : isRouteRisk ? 'border-l-4 border-l-amber-400/50 bg-amber-950/10' : 'border-l-4 border-l-transparent'}`}
+                                            >
+                                                <div className="flex justify-between items-start mb-2 gap-3">
+                                                    <div className="flex items-start gap-3 flex-1">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checkedRailDisruptionIds.has(d.id)}
+                                                            onChange={(e) => toggleRailDisruptionCheck(d.id, e)}
+                                                            className="mt-0.5 w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-green-500 focus:ring-0 focus:ring-offset-0 cursor-pointer flex-shrink-0"
+                                                        />
+                                                        <span className="font-bold text-xs text-zinc-200 line-clamp-2">{d.title}</span>
+                                                        {isRouteRisk && (
+                                                            <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 rounded border border-amber-500/30 flex-shrink-0">
+                                                                Route Risk
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {d.status && (
+                                                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border flex-shrink-0 text-green-400 bg-green-950/30 border-green-900/30">
+                                                            {d.status}
+                                                        </span>
+                                                    )}
+                                                </div>
 
-                                        {d.operator && (
-                                            <div className="text-[10px] text-zinc-500 font-mono mb-2">
-                                                {d.operator}
-                                            </div>
-                                        )}
+                                                {d.operator && (
+                                                    <div className="text-[10px] text-zinc-500 font-mono mb-2">
+                                                        {d.operator}
+                                                    </div>
+                                                )}
 
-                                        {(d.stationName && d.crsCode && (d.lat != null && d.lon != null)) && (
-                                            <div className="mb-2 space-y-1">
-                                                {d.stationName && (
-                                                    <div className="text-[10px] text-zinc-400 font-mono">
-                                                        {d.stationName} ({d.crsCode})
+                                                {(d.stationName && d.crsCode && (d.lat != null && d.lon != null)) && (
+                                                    <div className="mb-2 space-y-1">
+                                                        {d.stationName && (
+                                                            <div className="text-[10px] text-zinc-400 font-mono">
+                                                                {d.stationName} ({d.crsCode})
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {d.description && (
+                                                    <div className="text-xs text-zinc-400 font-normal leading-relaxed line-clamp-3">
+                                                        {d.description}
                                                     </div>
                                                 )}
                                             </div>
-                                        )}
-
-                                        {d.description && (
-                                            <div className="text-xs text-zinc-400 font-normal leading-relaxed line-clamp-3">
-                                                {d.description}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
+                                        );
+                                    })}
                             </div>
                         </div>
                     )}
@@ -899,41 +994,57 @@ export default function RouteEditorPage() {
                             </div>
 
                             <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
-                                {notams.map((notam, idx) => (
-                                    <div
-                                        key={notam.id || idx}
-                                        onClick={() => setSelectedNotam(notam)}
-                                        className={`p-4 border-b border-zinc-800/50 cursor-pointer hover:bg-zinc-900/50 transition-colors ${selectedNotam === notam ? 'bg-blue-950/20 border-l-4 border-l-blue-500' : 'border-l-4 border-l-transparent'}`}
-                                    >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={checkedNotamIds.has(notam.id || notam.notamCode)}
-                                                    onChange={(e) => toggleNotamCheck(notam.id || notam.notamCode, e)}
-                                                    className="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-blue-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                                {[...notams]
+                                    .sort((a, b) => {
+                                        const aIsRisk = showRisksOnMap && highlightedRiskIdsSet.has(a.id);
+                                        const bIsRisk = showRisksOnMap && highlightedRiskIdsSet.has(b.id);
+                                        if (aIsRisk && !bIsRisk) return -1;
+                                        if (!aIsRisk && bIsRisk) return 1;
+                                        return 0;
+                                    })
+                                    .map((notam, idx) => {
+                                        const isRouteRisk = showRisksOnMap && highlightedRiskIdsSet.has(notam.id);
+                                        return (
+                                            <div
+                                                key={notam.id || idx}
+                                                onClick={() => setSelectedNotam(notam)}
+                                                className={`p-4 border-b border-zinc-800/50 cursor-pointer hover:bg-zinc-900/50 transition-colors ${selectedNotam === notam ? 'bg-blue-950/20 border-l-4 border-l-blue-500' : isRouteRisk ? 'border-l-4 border-l-amber-400/50 bg-amber-950/10' : 'border-l-4 border-l-transparent'}`}
+                                            >
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checkedNotamIds.has(notam.id || notam.notamCode)}
+                                                            onChange={(e) => toggleNotamCheck(notam.id || notam.notamCode, e)}
+                                                            className="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-blue-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                                                        />
+                                                        <span className="font-bold text-sm text-zinc-200">{notam.notamCode}</span>
+                                                        {isRouteRisk && (
+                                                            <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 rounded border border-amber-500/30">
+                                                                Route Risk
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-800/50 px-1.5 py-0.5 rounded border border-zinc-700/50">
+                                                            {notam.type}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="text-xs font-semibold text-zinc-300 mb-2">{notam.title}</div>
+
+                                                <div
+                                                    className="text-[10px] text-zinc-400 font-mono leading-relaxed mb-2 line-clamp-4"
+                                                    dangerouslySetInnerHTML={{ __html: notam.description }}
                                                 />
-                                                <span className="font-bold text-sm text-zinc-200">{notam.notamCode}</span>
+
+                                                <div className="text-[9px] text-zinc-500 font-mono mt-2 pt-2 border-t border-zinc-800/50">
+                                                    {notam.validity}
+                                                </div>
                                             </div>
-                                            <div className="flex flex-col items-end gap-1">
-                                                <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-800/50 px-1.5 py-0.5 rounded border border-zinc-700/50">
-                                                    {notam.type}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div className="text-xs font-semibold text-zinc-300 mb-2">{notam.title}</div>
-
-                                        <div
-                                            className="text-[10px] text-zinc-400 font-mono leading-relaxed mb-2 line-clamp-4"
-                                            dangerouslySetInnerHTML={{ __html: notam.description }} // Description contains HTML breaks
-                                        />
-
-                                        <div className="text-[9px] text-zinc-500 font-mono mt-2 pt-2 border-t border-zinc-800/50">
-                                            {notam.validity}
-                                        </div>
-                                    </div>
-                                ))}
+                                        );
+                                    })}
                             </div>
                         </div>
                     )}
@@ -958,38 +1069,54 @@ export default function RouteEditorPage() {
                             </div>
 
                             <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
-                                {weatherAlerts.map((alert, idx) => (
-                                    <div
-                                        key={alert.id || idx}
-                                        onClick={() => setSelectedWeatherAlert(alert)}
-                                        className={`p-4 border-b border-zinc-800/50 cursor-pointer hover:bg-zinc-900/50 transition-colors ${selectedWeatherAlert === alert ? 'bg-purple-950/20 border-l-4 border-l-purple-500' : 'border-l-4 border-l-transparent'}`}
-                                    >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={checkedWeatherIds.has(alert.id || alert.event)}
-                                                    onChange={(e) => toggleWeatherCheck(alert.id || alert.event, e)}
-                                                    className="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-purple-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                                                />
-                                                <span className="font-bold text-sm text-zinc-200">{alert.event}</span>
+                                {[...weatherAlerts]
+                                    .sort((a, b) => {
+                                        const aIsRisk = showRisksOnMap && highlightedRiskIdsSet.has(a.id);
+                                        const bIsRisk = showRisksOnMap && highlightedRiskIdsSet.has(b.id);
+                                        if (aIsRisk && !bIsRisk) return -1;
+                                        if (!aIsRisk && bIsRisk) return 1;
+                                        return 0;
+                                    })
+                                    .map((alert, idx) => {
+                                        const isRouteRisk = showRisksOnMap && highlightedRiskIdsSet.has(alert.id);
+                                        return (
+                                            <div
+                                                key={alert.id || idx}
+                                                onClick={() => setSelectedWeatherAlert(alert)}
+                                                className={`p-4 border-b border-zinc-800/50 cursor-pointer hover:bg-zinc-900/50 transition-colors ${selectedWeatherAlert === alert ? 'bg-purple-950/20 border-l-4 border-l-purple-500' : isRouteRisk ? 'border-l-4 border-l-amber-400/50 bg-amber-950/10' : 'border-l-4 border-l-transparent'}`}
+                                            >
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checkedWeatherIds.has(alert.id || alert.event)}
+                                                            onChange={(e) => toggleWeatherCheck(alert.id || alert.event, e)}
+                                                            className="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-purple-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                                                        />
+                                                        <span className="font-bold text-sm text-zinc-200">{alert.event}</span>
+                                                        {isRouteRisk && (
+                                                            <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 rounded border border-amber-500/30">
+                                                                Route Risk
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        {getWeatherIcon(alert.tags)}
+                                                    </div>
+                                                </div>
+
+                                                <div className="text-xs font-semibold text-zinc-400 mb-1">{alert.sender_name}</div>
+
+                                                <div className="text-[10px] text-zinc-500 font-mono mb-2">
+                                                    {new Date(alert.start * 1000).toLocaleString()} - {new Date(alert.end * 1000).toLocaleString()}
+                                                </div>
+
+                                                <div className="text-xs text-zinc-400 font-normal leading-relaxed line-clamp-3">
+                                                    {alert.description}
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-1">
-                                                {getWeatherIcon(alert.tags)}
-                                            </div>
-                                        </div>
-
-                                        <div className="text-xs font-semibold text-zinc-400 mb-1">{alert.sender_name}</div>
-
-                                        <div className="text-[10px] text-zinc-500 font-mono mb-2">
-                                            {new Date(alert.start * 1000).toLocaleString()} - {new Date(alert.end * 1000).toLocaleString()}
-                                        </div>
-
-                                        <div className="text-xs text-zinc-400 font-normal leading-relaxed line-clamp-3">
-                                            {alert.description}
-                                        </div>
-                                    </div>
-                                ))}
+                                        );
+                                    })}
                             </div>
                         </div>
                     )}
@@ -1461,6 +1588,80 @@ export default function RouteEditorPage() {
                         clearAllPreviews={routePreviewHook.clearAllPreviews}
                         isLoadingAll={routePreviewHook.isLoadingAll}
                         routePreviews={routePreviewHook.routePreviews}
+                        navigationWarnings={warnings}
+                        notams={notams}
+                        weatherAlerts={weatherAlerts}
+                        tradeBarriers={tradeBarriers}
+                        railDisruptions={railDisruptions}
+                        electricityOutages={electricityOutages}
+                        waterIncidents={waterIncidents}
+                        gpsJammingPoints={gpsJammingPoints}
+                        onToggleRisksOnMap={(risks: RouteRiskPoint[], enable: boolean) => {
+                            setHighlightedRiskIds(risks.map(r => r.id));
+                            setShowRisksOnMap(enable);
+
+                            if (enable) {
+                                // Directly add all identified risks to their respective checked sets
+                                const warningRefs = new Set<string>();
+                                const notamIds = new Set<string>();
+                                const weatherIds = new Set<string>();
+                                const railIds = new Set<string>();
+                                const tradeIds = new Set<string>();
+                                const electricIds = new Set<string>();
+                                const waterIds = new Set<string>();
+                                let enableGPS = false;
+
+                                for (const risk of risks) {
+                                    if (risk.type === 'navigation') {
+                                        warningRefs.add(risk.id);
+                                    } else if (risk.type === 'notam') {
+                                        notamIds.add(risk.id);
+                                    } else if (risk.type === 'weather') {
+                                        weatherIds.add(risk.id);
+                                    } else if (risk.type === 'train-disruption') {
+                                        // risk.id is 'train-disruption-{id}', extract the id
+                                        const match = risk.id.match(/^train-disruption-(.+)$/);
+                                        if (match) {
+                                            railIds.add(match[1]);
+                                        }
+                                    } else if (risk.type === 'trade-barrier') {
+                                        tradeIds.add(risk.id);
+                                    } else if (risk.type === 'electricity') {
+                                        electricIds.add(risk.id);
+                                    } else if (risk.type === 'water') {
+                                        waterIds.add(risk.id);
+                                    } else if (risk.type === 'jamming') {
+                                        enableGPS = true;
+                                    }
+                                }
+
+                                // Merge with existing checked sets
+                                if (warningRefs.size > 0) {
+                                    setCheckedWarningIds(prev => new Set([...prev, ...warningRefs]));
+                                }
+                                if (notamIds.size > 0) {
+                                    setCheckedNotamIds(prev => new Set([...prev, ...notamIds]));
+                                }
+                                if (weatherIds.size > 0) {
+                                    setCheckedWeatherIds(prev => new Set([...prev, ...weatherIds]));
+                                }
+                                if (railIds.size > 0) {
+                                    setCheckedRailDisruptionIds(prev => new Set([...prev, ...railIds]));
+                                }
+                                if (tradeIds.size > 0) {
+                                    setCheckedTradeBarrierIds(prev => new Set([...prev, ...tradeIds]));
+                                }
+                                if (electricIds.size > 0) {
+                                    setCheckedOutageIds(prev => new Set([...prev, ...electricIds]));
+                                }
+                                if (waterIds.size > 0) {
+                                    setCheckedWaterIncidentRefs(prev => new Set([...prev, ...waterIds]));
+                                }
+                                if (enableGPS) {
+                                    setShowGPSJamming(true);
+                                }
+                            }
+                        }}
                     />
                 </div>
             </div>

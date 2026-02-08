@@ -8,6 +8,9 @@ import { ShippingRouteModel, type ShippingRouteRecord } from '../models/Shipping
 import type { WeatherAlert } from '../types/WeatherAlert';
 import type { NavigationWarning } from '../types/NavigationWarning';
 import type { Notam } from '../types/Notam';
+import type { TradeBarrier } from '../types/TradeBarrier';
+import type { PowerOutage } from '../types/PowerOutage';
+import type { WaterIncident } from '../types/WaterIncident';
 import { decode } from '@googlemaps/polyline-codec';
 import { TransportMode, type Stage, type Transport } from '../types/ShippingRouteData';
 
@@ -18,9 +21,11 @@ export interface RiskPoint {
   id: string;
   lat: number;
   lon: number;
-  type: 'weather' | 'navigation' | 'notam' | 'traffic' | 'jamming' | 'train-disruption';
+  type: 'weather' | 'navigation' | 'notam' | 'traffic' | 'jamming' | 'train-disruption' | 'trade-barrier' | 'electricity' | 'water';
   category?: string;
   severity?: number;
+  country?: string; // For trade barriers
+  title?: string; // For display purposes
 }
 
 /**
@@ -32,11 +37,11 @@ async function fetchRoadRoutePoints(
 ): Promise<Point[]> {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    
+
     // Convert from {lat, lon} to {lat, lng} format for Google Maps API
     let formattedOrigin: { lat: number; lng: number } | string;
     let formattedDest: { lat: number; lng: number } | string;
-    
+
     if (typeof origin === 'object') {
       // Check for invalid 0,0 coordinates
       if (origin.lat === 0 && origin.lon === 0) {
@@ -46,7 +51,7 @@ async function fetchRoadRoutePoints(
     } else {
       formattedOrigin = origin;
     }
-    
+
     if (typeof destination === 'object') {
       // Check for invalid 0,0 coordinates
       if (destination.lat === 0 && destination.lon === 0) {
@@ -56,7 +61,7 @@ async function fetchRoadRoutePoints(
     } else {
       formattedDest = destination;
     }
-    
+
     const response = await fetch(`${baseUrl}/api/roads/navigation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -197,20 +202,20 @@ async function extractStagePoints(stage: Stage): Promise<Point[]> {
   if (!stage.transport) {
     return [];
   }
-  
+
   const transport = stage.transport;
   let stagePoints: Point[] = [];
-  
+
   try {
     switch (transport.mode) {
       case TransportMode.Road: {
         const origin = { lat: transport.source.latitude, lon: transport.source.longitude };
         const destination = { lat: transport.destination.latitude, lon: transport.destination.longitude };
-        
+
         // Check if we have valid coordinates
         const hasOriginCoords = origin.lat !== 0 || origin.lon !== 0;
         const hasDestCoords = destination.lat !== 0 || destination.lon !== 0;
-        
+
         if (hasOriginCoords && hasDestCoords) {
           stagePoints = await fetchRoadRoutePoints(origin, destination);
         } else if (transport.source.name && transport.destination.name) {
@@ -218,25 +223,25 @@ async function extractStagePoints(stage: Stage): Promise<Point[]> {
         }
         break;
       }
-      
+
       case TransportMode.Rail: {
         if (transport.source.name && transport.destination.name) {
           stagePoints = await fetchRailRoutePoints(transport.source.name, transport.destination.name);
         }
         break;
       }
-      
+
       case TransportMode.Sea: {
         // Sea routes use port codes or names
         const origin = transport.source.code || transport.source.name;
         const destination = transport.destination.code || transport.destination.name;
-        
+
         if (origin && destination) {
           stagePoints = await fetchSeaRoutePoints(origin, destination);
         }
         break;
       }
-      
+
       case TransportMode.Flight: {
         const origin = { lat: transport.source.latitude, lon: transport.source.longitude };
         const destination = { lat: transport.destination.latitude, lon: transport.destination.longitude };
@@ -247,7 +252,7 @@ async function extractStagePoints(stage: Stage): Promise<Point[]> {
   } catch (error) {
     console.error(`[Risk Analysis] Error fetching route for ${transport.mode} stage:`, error);
   }
-  
+
   // Fallback: if API failed, use start and end points only
   if (stagePoints.length === 0) {
     stagePoints = [
@@ -255,7 +260,7 @@ async function extractStagePoints(stage: Stage): Promise<Point[]> {
       { lat: transport.destination.latitude, lon: transport.destination.longitude }
     ];
   }
-  
+
   return stagePoints;
 }
 
@@ -264,14 +269,14 @@ async function extractStagePoints(stage: Stage): Promise<Point[]> {
  */
 async function extractRoutePoints(route: ShippingRouteRecord): Promise<Point[]> {
   const allPoints: Point[] = [];
-  
+
   for (const stage of route.stages) {
     const stagePoints = await extractStagePoints(stage);
     allPoints.push(...stagePoints);
   }
-  
+
   console.log(`[Risk Analysis] Route "${route.name}" has ${allPoints.length} points extracted (including intermediate waypoints)`);
-  
+
   return allPoints;
 }
 
@@ -284,15 +289,15 @@ async function fetchWeatherAlerts(): Promise<RiskPoint[]> {
     const response = await fetch(`${baseUrl}/api/weather/alerts`, {
       next: { revalidate: 300 } // Cache for 5 minutes
     } as any);
-    
+
     if (!response.ok) {
       console.error('Failed to fetch weather alerts:', response.status);
       return [];
     }
-    
+
     const data = await response.json();
     const alerts: WeatherAlert[] = data.alerts || [];
-    
+
     return alerts.map(alert => ({
       id: alert.id,
       lat: alert.lat,
@@ -314,15 +319,15 @@ async function fetchNavigationWarnings(): Promise<RiskPoint[]> {
     const response = await fetch(`${baseUrl}/api/maritime/navigationwarnings`, {
       next: { revalidate: 300 } // Cache for 5 minutes
     } as any);
-    
+
     if (!response.ok) {
       console.error('Failed to fetch navigation warnings:', response.status);
       return [];
     }
-    
+
     const data = await response.json();
     const warnings: NavigationWarning[] = data.warnings || [];
-    
+
     // Extract all coordinate points from warnings
     const riskPoints: RiskPoint[] = [];
     for (const warning of warnings) {
@@ -337,7 +342,7 @@ async function fetchNavigationWarnings(): Promise<RiskPoint[]> {
         });
       }
     }
-    
+
     return riskPoints;
   } catch (error) {
     console.error('Error fetching navigation warnings:', error);
@@ -354,15 +359,15 @@ async function fetchNotams(): Promise<RiskPoint[]> {
     const response = await fetch(`${baseUrl}/api/aviation/notams`, {
       next: { revalidate: 300 } // Cache for 5 minutes
     } as any);
-    
+
     if (!response.ok) {
       console.error('Failed to fetch NOTAMs:', response.status);
       return [];
     }
-    
+
     const data = await response.json();
     const notams: Notam[] = data.notams || [];
-    
+
     return notams.map(notam => ({
       id: notam.id,
       lat: notam.latitude,
@@ -384,15 +389,15 @@ async function fetchTrafficAlerts(): Promise<RiskPoint[]> {
     const response = await fetch(`${baseUrl}/api/roads/traffic`, {
       next: { revalidate: 300 } // Cache for 5 minutes
     } as any);
-    
+
     if (!response.ok) {
       console.error('Failed to fetch traffic alerts:', response.status);
       return [];
     }
-    
+
     const data = await response.json();
     const events: any[] = data.events || [];
-    
+
     return events.map(event => ({
       id: event.guid || event.title,
       lat: event.latitude,
@@ -415,15 +420,15 @@ async function fetchJammingRisks(): Promise<RiskPoint[]> {
     const response = await fetch(`${baseUrl}/api/aviation/gps`, {
       next: { revalidate: 300 } // Cache for 5 minutes
     } as any);
-    
+
     if (!response.ok) {
       console.error('Failed to fetch GPS jamming data:', response.status);
       return [];
     }
-    
+
     const data = await response.json();
     const points: any[] = data.points || [];
-    
+
     return points.map(p => ({
       id: `jamming-${p.id}`,
       lat: p.lat,
@@ -446,17 +451,17 @@ async function fetchTrainDisruptionRisks(): Promise<RiskPoint[]> {
     const response = await fetch(`${baseUrl}/api/rail/disruption`, {
       next: { revalidate: 300 } // Cache for 5 minutes
     } as any);
-    
+
     if (!response.ok) {
       console.error('Failed to fetch train disruptions:', response.status);
       return [];
     }
-    
+
     const data = await response.json();
     const points: any[] = data.disruptions || [];
 
     console.log(points);
-    
+
     return points.map(p => ({
       id: `train-disruption-${p.id}`,
       lat: p.lat,
@@ -471,19 +476,123 @@ async function fetchTrainDisruptionRisks(): Promise<RiskPoint[]> {
 }
 
 /**
+ * Fetches all trade barriers from the API
+ */
+async function fetchTradeBarriers(): Promise<{ barriers: TradeBarrier[], riskPoints: RiskPoint[] }> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/trade/barriers`, {
+      next: { revalidate: 300 }
+    } as any);
+
+    if (!response.ok) {
+      console.error('Failed to fetch trade barriers:', response.status);
+      return { barriers: [], riskPoints: [] };
+    }
+
+    const data = await response.json();
+    const barriers: TradeBarrier[] = data.barriers || [];
+
+    // Trade barriers don't have coordinates - they're matched by country name
+    // We return them separately for country-based matching
+    const riskPoints: RiskPoint[] = barriers.map(b => ({
+      id: `trade-barrier-${b.id}`,
+      lat: 0, // Will be matched by country, not coordinates
+      lon: 0,
+      type: 'trade-barrier' as const,
+      country: b.country_or_territory.name,
+      title: b.title
+    }));
+
+    return { barriers, riskPoints };
+  } catch (error) {
+    console.error('Error fetching trade barriers:', error);
+    return { barriers: [], riskPoints: [] };
+  }
+}
+
+/**
+ * Fetches all electricity outages from the API
+ */
+async function fetchElectricityOutages(): Promise<RiskPoint[]> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/utilities/electricity`, {
+      next: { revalidate: 300 }
+    } as any);
+
+    if (!response.ok) {
+      console.error('Failed to fetch electricity outages:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    const outages: PowerOutage[] = data.outages || [];
+
+    return outages
+      .filter(o => o.lat != null && o.lon != null && (o.status === 'active' || o.status === 'investigating'))
+      .map(o => ({
+        id: `electricity-${o.id}`,
+        lat: o.lat!,
+        lon: o.lon!,
+        type: 'electricity' as const,
+        title: o.title
+      }));
+  } catch (error) {
+    console.error('Error fetching electricity outages:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetches all water incidents from the API
+ */
+async function fetchWaterIncidents(): Promise<RiskPoint[]> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/utilities/water`, {
+      next: { revalidate: 300 }
+    } as any);
+
+    if (!response.ok) {
+      console.error('Failed to fetch water incidents:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    const incidents: WaterIncident[] = data.incidents || [];
+
+    return incidents
+      .filter(i => i.latitude != null && i.longitude != null)
+      .map(i => ({
+        id: `water-${i.incidentRef}`,
+        lat: i.latitude,
+        lon: i.longitude,
+        type: 'water' as const,
+        title: i.location
+      }));
+  } catch (error) {
+    console.error('Error fetching water incidents:', error);
+    return [];
+  }
+}
+
+/**
  * Fetches all active risks from all sources
  */
 export async function fetchAllRisks(): Promise<RiskPoint[]> {
-  const [weatherAlerts, navigationWarnings, notams, trafficAlerts, jammingRisks, trainDisruptions] = await Promise.all([
+  const [weatherAlerts, navigationWarnings, notams, trafficAlerts, jammingRisks, trainDisruptions, electricityOutages, waterIncidents] = await Promise.all([
     fetchWeatherAlerts(),
     fetchNavigationWarnings(),
     fetchNotams(),
     fetchTrafficAlerts(),
     fetchJammingRisks(),
-    fetchTrainDisruptionRisks()
+    fetchTrainDisruptionRisks(),
+    fetchElectricityOutages(),
+    fetchWaterIncidents()
   ]);
-  
-  return [...weatherAlerts, ...navigationWarnings, ...notams, ...trafficAlerts, ...jammingRisks, ...trainDisruptions];
+
+  return [...weatherAlerts, ...navigationWarnings, ...notams, ...trafficAlerts, ...jammingRisks, ...trainDisruptions, ...electricityOutages, ...waterIncidents];
 }
 
 /**
@@ -503,26 +612,26 @@ function isRouteNearRisk(
   if (routePoints.length === 0) {
     return false;
   }
-  
+
   // Optimization: Check endpoints first
   // Only skip if both endpoints are farther than double the route length
   const startPoint = routePoints[0];
   const endPoint = routePoints[routePoints.length - 1];
-  
+
   const startDistance = haversineDistance(
     startPoint.lat,
     startPoint.lon,
     riskPoint.lat,
     riskPoint.lon
   );
-  
+
   const endDistance = haversineDistance(
     endPoint.lat,
     endPoint.lon,
     riskPoint.lat,
     riskPoint.lon
   );
-  
+
   // Calculate the distance between start and end points
   const routeLength = haversineDistance(
     startPoint.lat,
@@ -530,7 +639,7 @@ function isRouteNearRisk(
     endPoint.lat,
     endPoint.lon
   );
-  
+
   // Early exit: if both endpoints are farther than 2x the route length, skip this route
   // This is geometrically sound - if both ends are very far away relative to the route,
   // the risk point cannot be close to any point along the route
@@ -538,12 +647,12 @@ function isRouteNearRisk(
   if (startDistance > earlyExitThreshold && endDistance > earlyExitThreshold) {
     return false;
   }
-  
+
   // If either endpoint is close enough, check if within actual threshold
   if (startDistance <= thresholdKm || endDistance <= thresholdKm) {
     return true;
   }
-  
+
   // Check all intermediate points and track minimum distance
   let minDistance = Math.min(startDistance, endDistance);
   for (const point of routePoints) {
@@ -553,11 +662,11 @@ function isRouteNearRisk(
       riskPoint.lat,
       riskPoint.lon
     );
-    
+
     if (distance < minDistance) {
       minDistance = distance;
     }
-    
+
     if (distance <= thresholdKm) {
       // console.log(`[Risk Analysis] Risk ${riskPoint.id} within threshold at intermediate point (${distance.toFixed(1)}km)`);
       return true;
@@ -576,12 +685,10 @@ const CACHE_TTL_MS = 60 * 1000; // 60 seconds
  * Optimized to process routes in parallel.
  *
  * @param userEmail - Email of the user whose routes to check
- * @param thresholdKm - Base distance threshold in kilometers (default: 20)
  * @returns Map of route ID -> list of nearby RiskPoints
  */
 export async function getRisksNearUserRoutesMap(
-  userEmail: string,
-  thresholdKm: number = 20
+  userEmail: string
 ): Promise<Record<string, RiskPoint[]>> {
   // Fetch user's routes
   await dbConnect();
@@ -604,9 +711,7 @@ export async function getRisksNearUserRoutesMap(
 
   console.log(`[Risk Analysis] Found ${risks.length} total risks`);
 
-  if (risks.length === 0) {
-    return {};
-  }
+  console.log(`[Risk Analysis] Found ${risks.length} total risks, ${tradeBarriers.length} trade barriers`);
 
   const routeIdToRisks: Record<string, RiskPoint[]> = {};
 
@@ -680,7 +785,7 @@ export async function getRisksNearUserRoutesMap(
   });
 
   const results = await Promise.all(routePromises);
-  
+
   for (const { routeId, foundRisks } of results) {
     if (foundRisks.length > 0) {
       routeIdToRisks[routeId] = foundRisks;
@@ -698,7 +803,7 @@ export async function getDashboardRiskStats(
   thresholdKm: number = 20
 ): Promise<{ risksNearRoutes: number; routesAtRisk: number }> {
   try {
-    const routeIdToRisks = await getRisksNearUserRoutesMap(userEmail, thresholdKm);
+    const routeIdToRisks = await getRisksNearUserRoutesMap(userEmail);
 
     const uniqueRiskIds = new Set<string>();
     for (const risks of Object.values(routeIdToRisks)) {
@@ -711,7 +816,7 @@ export async function getDashboardRiskStats(
     const risksNearRoutes = uniqueRiskIds.size;
 
     console.log(`[Risk Analysis] Combined Stats: ${risksNearRoutes} risks, ${routesAtRisk} routes at risk`);
-    
+
     return { risksNearRoutes, routesAtRisk };
   } catch (error) {
     console.error('Error calculating dashboard risk stats:', error);
@@ -736,8 +841,7 @@ export async function countRisksNearUserRoutes(
  * @deprecated Use getDashboardRiskStats instead for better performance in dashboard.
  */
 export async function countRoutesAtRisk(
-  userEmail: string,
-  thresholdKm: number = 20
+  userEmail: string
 ): Promise<number> {
   const { routesAtRisk } = await getDashboardRiskStats(userEmail, thresholdKm);
   return routesAtRisk;
