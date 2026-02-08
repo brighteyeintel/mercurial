@@ -408,7 +408,7 @@ export default function ShippingRoutePanel({
     }
 
     return (
-        <div className="w-[450px] bg-black border-l border-zinc-900 flex flex-col z-20 shadow-2xl">
+        <div className="h-full w-full bg-black flex flex-col">
             {/* Editor Header */}
             <div className="p-4 border-b border-zinc-900 bg-zinc-950/50 backdrop-blur-sm flex items-center justify-between sticky top-0 z-10">
                 <div className="flex items-center gap-3">
@@ -476,7 +476,7 @@ export default function ShippingRoutePanel({
             </div>
 
             {/* Scrollable Form Area */}
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
                 <div className="space-y-6">
 
                     {saveError && (

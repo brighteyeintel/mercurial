@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
-import { Globe, AlertTriangle, ChevronLeft, Ship, Plane, CloudLightning, Sun, CloudRain, Snowflake, Wind, Waves, Flame, Building2, Search, X, Train, Radio } from "lucide-react";
+import { Globe, AlertTriangle, ChevronLeft, ChevronRight, Layers, Ship, Plane, CloudLightning, Sun, CloudRain, Snowflake, Wind, Waves, Flame, Building2, Search, X, Train, Radio } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { NavigationWarning } from '../types/NavigationWarning';
 import { Notam } from '../types/Notam';
@@ -86,6 +86,7 @@ export default function RouteEditorPage() {
     const [isGPSSidebarOpen, setIsGPSSidebarOpen] = useState(false);
     const [gpsAttribution, setGpsAttribution] = useState<string>('');
     const [isGPSLoading, setIsGPSLoading] = useState(true);
+    const [isRoutePanelOpen, setIsRoutePanelOpen] = useState(true);
 
     // Route Preview Hook
     const routePreviewHook = useRoutePreview();
@@ -396,7 +397,7 @@ export default function RouteEditorPage() {
 
             <div className="flex flex-1 overflow-hidden relative">
                 {/* Map Panel (Left) */}
-                <div className="flex-1 relative bg-zinc-900 border-r border-zinc-800">
+                <div className="flex-1 relative bg-zinc-900">
                     <MapWrapper
                         selectedWarning={selectedWarning}
                         selectedNotam={selectedNotam}
@@ -424,7 +425,7 @@ export default function RouteEditorPage() {
 
 
                     {/* Feature Toggles */}
-                    <div className={`absolute top-4 z-[1000] flex flex-col gap-2 transition-all duration-300 ${(isWarningsSidebarOpen || isNotamsSidebarOpen || isWeatherSidebarOpen || isRailSidebarOpen || isTradeSidebarOpen || isRoadsSidebarOpen || isGPSSidebarOpen)
+                    <div className={`absolute top-4 z-1000 flex flex-col gap-2 transition-all duration-300 ${(isWarningsSidebarOpen || isNotamsSidebarOpen || isWeatherSidebarOpen || isRailSidebarOpen || isTradeSidebarOpen || isRoadsSidebarOpen || isGPSSidebarOpen)
                         ? 'left-[416px]'
                         : 'left-4'
                         }`}>
@@ -536,6 +537,20 @@ export default function RouteEditorPage() {
                             title="Toggle GPS Jamming Layer"
                         >
                             {isGPSSidebarOpen ? <ChevronLeft className="h-5 w-5 text-zinc-300" /> : <Radio className="h-5 w-5 text-red-500" />}
+                        </button>
+                    </div>
+
+                    {/* Right Panel Toggle */}
+                    <div className={`absolute top-4 z-1000 flex flex-col gap-2 transition-transform duration-300 ease-in-out right-4 ${isRoutePanelOpen
+                        ? '-translate-x-[450px]'
+                        : 'translate-x-0'
+                        }`}>
+                        <button
+                            onClick={() => setIsRoutePanelOpen(!isRoutePanelOpen)}
+                            className={`p-2 rounded-lg border shadow-xl transition-all backdrop-blur-md ${isRoutePanelOpen ? 'bg-zinc-800/80 border-zinc-600' : 'bg-zinc-900/60 border-zinc-700 hover:bg-zinc-800'}`}
+                            title="Toggle Route Panel"
+                        >
+                            {isRoutePanelOpen ? <ChevronRight className="h-5 w-5 text-zinc-300" /> : <Layers className="h-5 w-5 text-sky-500" />}
                         </button>
                     </div>
 
@@ -1037,12 +1052,14 @@ export default function RouteEditorPage() {
                     )}
                 </div>
 
-                {/* Shipping Route Panel (Right) */}
-                <ShippingRoutePanel
-                    fetchAllRoutePreviews={routePreviewHook.fetchAllRoutePreviews}
-                    clearAllPreviews={routePreviewHook.clearAllPreviews}
-                    isLoadingAll={routePreviewHook.isLoadingAll}
-                />
+                {/* Shipping Route Panel (Right) - Absolute Overlay with Animation */}
+                <div className={`absolute top-0 right-0 bottom-0 w-[450px] z-950 border-l border-zinc-800 shadow-2xl flex flex-col bg-black transition-transform duration-300 ease-in-out ${isRoutePanelOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                    <ShippingRoutePanel
+                        fetchAllRoutePreviews={routePreviewHook.fetchAllRoutePreviews}
+                        clearAllPreviews={routePreviewHook.clearAllPreviews}
+                        isLoadingAll={routePreviewHook.isLoadingAll}
+                    />
+                </div>
             </div>
         </div>
     );
