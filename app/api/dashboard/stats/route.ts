@@ -21,10 +21,10 @@ export async function GET() {
         const savedRoutesCount = await ShippingRouteModel.countDocuments({ user_email: email });
 
         // 2. Number of risks within 20km of any user route
-        const risksNearRoutes = await countRisksNearUserRoutes(email);
+        const risksNearRoutes = await countRisksNearUserRoutes(email, 20);
 
         // 3. Number of routes with at least one risk
-        const routesAtRisk = await countRoutesAtRisk(email);
+        const routesAtRisk = await countRoutesAtRisk(email, 20);
 
         return Response.json({
             savedRoutesCount,

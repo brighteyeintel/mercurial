@@ -637,7 +637,7 @@ export async function getRisksNearUserRoutesMap(
           break;
         case TransportMode.Flight:
           stageThresholdKm = 100;
-          allowedRiskTypes = ['notam', 'jamming'];
+          allowedRiskTypes = ['notam', 'jamming', 'weather'];
           break;
       }
 
