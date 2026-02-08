@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { CountUp } from 'countup.js';
@@ -12,8 +12,9 @@ export default function DashboardPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
 
-    const [stats, setStats] = useState({ savedRoutesCount: 0, fixedFive: 0, fixedTen: 0 });
+    const [stats, setStats] = useState({ savedRoutesCount: 0, risksNearRoutes: 0, fixedTen: 0 });
     const [isLoadingStats, setIsLoadingStats] = useState(false);
+    const hasFetched = useRef(false);
 
 
     useEffect(() => {
@@ -24,6 +25,9 @@ export default function DashboardPage() {
 
     useEffect(() => {
         const fetchStats = async () => {
+            if (hasFetched.current) return;
+            hasFetched.current = true;
+            
             setIsLoadingStats(true);
             try {
                 const res = await fetch('/api/dashboard/stats', { method: 'GET' });
@@ -33,12 +37,12 @@ export default function DashboardPage() {
                 }
                 setStats({
                     savedRoutesCount: data.savedRoutesCount ?? 0,
-                    fixedFive: data.fixedFive ?? 0,
+                    risksNearRoutes: data.risksNearRoutes ?? 0,
                     fixedTen: data.fixedTen ?? 0
                 });
             } catch (error) {
                 console.error('Error fetching stats:', error);
-                // Optionally set an error state here if you want to show it in the UI
+                hasFetched.current = false; // Allow retry on error
             } finally {
                 setIsLoadingStats(false);
             }
@@ -108,7 +112,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex flex-col items-center text-center">
                         <div className="w-32 h-32 bg-red-600/50 mask-[url('/triangle-exclamation-svgrepo-com.svg')] mask-contain mask-no-repeat mask-center mb-4"></div>
-                        <span className="text-white text-8xl" data-count-to={stats.fixedFive}>0</span>
+                        <span className="text-white text-8xl" data-count-to={stats.risksNearRoutes}>0</span>
                         <p className="mt-4 text-zinc-400 text-xl">Risk Events</p>
                     </div>
                     <div className="flex flex-col items-center text-center">
