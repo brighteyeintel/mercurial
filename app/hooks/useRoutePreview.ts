@@ -81,7 +81,10 @@ async function fetchRailRoute(origin: string, destination: string): Promise<[num
     return null;
 }
 
-async function fetchRoadRoute(origin: string, destination: string): Promise<RoutePreviewData | null> {
+async function fetchRoadRoute(
+    origin: { lat: number; lng: number } | string,
+    destination: { lat: number; lng: number } | string
+): Promise<RoutePreviewData | null> {
     try {
         const response = await fetch("/api/roads/navigation", {
             method: "POST",
@@ -119,8 +122,8 @@ export function useRoutePreview() {
 
     const fetchRoutePreview = useCallback(async (
         stageIndex: number,
-        origin: string,
-        destination: string
+        origin: { lat: number; lng: number } | string,
+        destination: { lat: number; lng: number } | string
     ) => {
         if (!origin || !destination) return;
 
@@ -173,8 +176,17 @@ export function useRoutePreview() {
 
                 switch (stage.transport.mode) {
                     case TransportMode.Road:
-                        if (origin && destination) {
-                            result = await fetchRoadRoute(origin, destination);
+                        const roadOrigin = { lat: stage.transport.source.latitude, lng: stage.transport.source.longitude };
+                        const roadDest = { lat: stage.transport.destination.latitude, lng: stage.transport.destination.longitude };
+
+                        // Use coordinates if available, fallback to name if coordinates are 0,0
+                        const hasOriginCoords = roadOrigin.lat !== 0 || roadOrigin.lng !== 0;
+                        const hasDestCoords = roadDest.lat !== 0 || roadDest.lng !== 0;
+
+                        if (hasOriginCoords && hasDestCoords) {
+                            result = await fetchRoadRoute(roadOrigin, roadDest);
+                        } else if (stage.transport.source.name && stage.transport.destination.name) {
+                            result = await fetchRoadRoute(stage.transport.source.name, stage.transport.destination.name);
                         }
                         break;
                     case TransportMode.Flight:

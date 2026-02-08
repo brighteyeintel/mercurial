@@ -25,7 +25,7 @@ function formatDuration(seconds: number): string {
 
 export async function POST(request: NextRequest) {
     const body = await request.json();
-    const { origin, destination } = body;
+    let { origin, destination } = body;
 
     if (!origin || !destination) {
         return NextResponse.json(
@@ -33,6 +33,20 @@ export async function POST(request: NextRequest) {
             { status: 400 }
         );
     }
+
+    // Convert coordinate objects to "lat,lng" strings if necessary
+    const formatLocation = (loc: any) => {
+        if (typeof loc === 'object' && loc !== null && 'latitude' in loc && 'longitude' in loc) {
+            return `${loc.latitude},${loc.longitude}`;
+        }
+        if (typeof loc === 'object' && loc !== null && 'lat' in loc && 'lng' in loc) {
+            return `${loc.lat},${loc.lng}`;
+        }
+        return String(loc);
+    };
+
+    const originStr = formatLocation(origin);
+    const destinationStr = formatLocation(destination);
 
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
@@ -45,8 +59,8 @@ export async function POST(request: NextRequest) {
     try {
         // Request with traffic data (departure_time=now)
         const url = new URL("https://maps.googleapis.com/maps/api/directions/json");
-        url.searchParams.set("origin", origin);
-        url.searchParams.set("destination", destination);
+        url.searchParams.set("origin", originStr);
+        url.searchParams.set("destination", destinationStr);
         url.searchParams.set("departure_time", "now");
         url.searchParams.set("key", apiKey);
         url.searchParams.set("travel_mode", "driving");
