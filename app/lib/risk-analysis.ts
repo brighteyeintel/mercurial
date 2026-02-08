@@ -573,6 +573,7 @@ const CACHE_TTL_MS = 60 * 1000; // 60 seconds
 
 /**
  * Builds a map of route ID -> nearby risks, applying mode-specific rules.
+ * Optimized to process routes in parallel.
  *
  * @param userEmail - Email of the user whose routes to check
  * @param thresholdKm - Base distance threshold in kilometers (default: 20)
@@ -601,7 +602,7 @@ export async function getRisksNearUserRoutesMap(
   // Fetch all active risks
   const risks = await fetchAllRisks();
 
-  console.log(`[Risk Analysis] Found ${risks.length} total risks (weather: ${risks.filter(r => r.type === 'weather').length}, nav: ${risks.filter(r => r.type === 'navigation').length}, notams: ${risks.filter(r => r.type === 'notam').length})`);
+  console.log(`[Risk Analysis] Found ${risks.length} total risks`);
 
   if (risks.length === 0) {
     return {};
@@ -609,9 +610,11 @@ export async function getRisksNearUserRoutesMap(
 
   const routeIdToRisks: Record<string, RiskPoint[]> = {};
 
-  for (const route of routes) {
+  // Process all routes in parallel
+  const routePromises = routes.map(async (route) => {
     const routeId = String((route as any)._id ?? (route as any).id ?? route.name);
     const routeRiskIds = new Set<string>();
+    const foundRisks: RiskPoint[] = [];
 
     for (const stage of route.stages) {
       if (!stage.transport) continue;
@@ -658,7 +661,6 @@ export async function getRisksNearUserRoutesMap(
 
         // Special rule for GPS jamming on flight stages
         if (mode === TransportMode.Flight && risk.type === 'jamming') {
-          // Requirement: Only flag maximum one risk per flight stage, only if severity > 50%
           if (jammingRiskFoundInStage) continue;
           if ((risk.severity || 0) <= 50) continue;
         }
@@ -666,16 +668,22 @@ export async function getRisksNearUserRoutesMap(
         const isNear = isRouteNearRisk(stagePoints, risk, stageThresholdKm);
         if (isNear) {
           routeRiskIds.add(risk.id);
-          if (!routeIdToRisks[routeId]) routeIdToRisks[routeId] = [];
-          routeIdToRisks[routeId].push(risk);
+          foundRisks.push(risk);
 
           if (risk.type === 'jamming') {
             jammingRiskFoundInStage = true;
           }
-
-          console.log(`[Risk Analysis] ✓ Route ${routeId} Stage ${mode}: Risk "${risk.id}" (${risk.type}${risk.category ? ` - ${risk.category}` : ''}${risk.severity ? ` - ${risk.severity}%` : ''}) is within ${stageThresholdKm}km of route "${route.name}"`);
         }
       }
+    }
+    return { routeId, foundRisks };
+  });
+
+  const results = await Promise.all(routePromises);
+  
+  for (const { routeId, foundRisks } of results) {
+    if (foundRisks.length > 0) {
+      routeIdToRisks[routeId] = foundRisks;
     }
   }
 
@@ -683,24 +691,12 @@ export async function getRisksNearUserRoutesMap(
 }
 
 /**
- * Counts the number of unique risks within a specified distance of any user route.
- * 
- * @param userEmail - Email of the user whose routes to check
- * @param thresholdKm - Distance threshold in kilometers (default: 20)
- * @returns Number of unique risks within threshold distance
+ * Optimized function to fetch all dashboard relevant risk stats in one pass.
  */
-export async function countRisksNearUserRoutes(
+export async function getDashboardRiskStats(
   userEmail: string,
   thresholdKm: number = 20
-): Promise<number> {
-  const cacheKey = `${userEmail}-${thresholdKm}`;
-  const now = Date.now();
-  
-  if (cache[cacheKey] && now - cache[cacheKey].timestamp < CACHE_TTL_MS) {
-    console.log(`[Risk Analysis] Returning cached result for user ${userEmail}: ${cache[cacheKey].value}`);
-    return cache[cacheKey].value;
-  }
-
+): Promise<{ risksNearRoutes: number; routesAtRisk: number }> {
   try {
     const routeIdToRisks = await getRisksNearUserRoutesMap(userEmail, thresholdKm);
 
@@ -711,48 +707,38 @@ export async function countRisksNearUserRoutes(
       }
     }
 
-    console.log(`[Risk Analysis] Total risks within threshold: ${uniqueRiskIds.size}`);
+    const routesAtRisk = Object.keys(routeIdToRisks).length;
+    const risksNearRoutes = uniqueRiskIds.size;
+
+    console.log(`[Risk Analysis] Combined Stats: ${risksNearRoutes} risks, ${routesAtRisk} routes at risk`);
     
-    // Update cache
-    cache[cacheKey] = { value: uniqueRiskIds.size, timestamp: Date.now() };
-    
-    return uniqueRiskIds.size;
+    return { risksNearRoutes, routesAtRisk };
   } catch (error) {
-    console.error('Error counting risks near user routes:', error);
-    return 0;
+    console.error('Error calculating dashboard risk stats:', error);
+    return { risksNearRoutes: 0, routesAtRisk: 0 };
   }
 }
+
+/**
+ * Counts the number of unique risks within a specified distance of any user route.
+ * @deprecated Use getDashboardRiskStats instead for better performance in dashboard.
+ */
+export async function countRisksNearUserRoutes(
+  userEmail: string,
+  thresholdKm: number = 20
+): Promise<number> {
+  const { risksNearRoutes } = await getDashboardRiskStats(userEmail, thresholdKm);
+  return risksNearRoutes;
+}
+
 /**
  * Counts the number of unique routes with at least one risk.
- * 
- * @param userEmail - Email of the user whose routes to check
- * @param thresholdKm - Distance threshold in kilometers (default: 20)
- * @returns Number of unique routes with at least one risk
+ * @deprecated Use getDashboardRiskStats instead for better performance in dashboard.
  */
 export async function countRoutesAtRisk(
   userEmail: string,
   thresholdKm: number = 20
 ): Promise<number> {
-  const cacheKey = `routes-at-risk-${userEmail}-${thresholdKm}`;
-  const now = Date.now();
-  
-  if (cache[cacheKey] && now - cache[cacheKey].timestamp < CACHE_TTL_MS) {
-    console.log(`[Risk Analysis] Returning cached result for routes at risk: ${cache[cacheKey].value}`);
-    return cache[cacheKey].value;
-  }
-
-  try {
-    const routeIdToRisks = await getRisksNearUserRoutesMap(userEmail, thresholdKm);
-    const routesWithRisksCount = Object.keys(routeIdToRisks).length;
-
-    console.log(`[Risk Analysis] Total routes with risks: ${routesWithRisksCount}`);
-    
-    // Update cache
-    cache[cacheKey] = { value: routesWithRisksCount, timestamp: Date.now() };
-    
-    return routesWithRisksCount;
-  } catch (error) {
-    console.error('Error counting routes at risk:', error);
-    return 0;
-  }
+  const { routesAtRisk } = await getDashboardRiskStats(userEmail, thresholdKm);
+  return routesAtRisk;
 }

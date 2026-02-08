@@ -2,7 +2,7 @@ import { dbConnect } from '../../../lib/mongo';
 import { ShippingRouteModel } from '../../../models/ShippingRoute';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/authOptions';
-import { countRisksNearUserRoutes, countRoutesAtRisk } from '../../../lib/risk-analysis';
+import { getDashboardRiskStats } from '../../../lib/risk-analysis';
 
 export const runtime = 'nodejs';
 
@@ -20,11 +20,8 @@ export async function GET() {
         // 1. Number of routes saved by a user
         const savedRoutesCount = await ShippingRouteModel.countDocuments({ user_email: email });
 
-        // 2. Number of risks within 20km of any user route
-        const risksNearRoutes = await countRisksNearUserRoutes(email, 20);
-
-        // 3. Number of routes with at least one risk
-        const routesAtRisk = await countRoutesAtRisk(email, 20);
+        // 2 & 3. Get risk-related stats in one pass
+        const { risksNearRoutes, routesAtRisk } = await getDashboardRiskStats(email, 20);
 
         return Response.json({
             savedRoutesCount,
