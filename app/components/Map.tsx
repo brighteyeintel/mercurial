@@ -17,13 +17,15 @@ import { PowerOutage } from "../types/PowerOutage";
 import { WaterIncident } from "../types/WaterIncident";
 
 // Component to handle map interactions like flying to coordinates
-const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert, selectedRailDisruption, selectedCountryBounds, routePreviews }: {
+const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert, selectedRailDisruption, selectedCountryBounds, routePreviews, leftPadding = 50, rightPadding = 50 }: {
     selectedWarning?: NavigationWarning | null,
     selectedNotam?: Notam | null,
     selectedWeatherAlert?: WeatherAlert | null,
     selectedRailDisruption?: RailDisruption | null,
     selectedCountryBounds?: L.LatLngBounds | null,
-    routePreviews?: RoutePreviewData[]
+    routePreviews?: RoutePreviewData[],
+    leftPadding?: number,
+    rightPadding?: number
 }) => {
     const map = useMap();
 
@@ -67,13 +69,14 @@ const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert, s
     useEffect(() => {
         if (selectedCountryBounds) {
             map.flyToBounds(selectedCountryBounds, {
-                padding: [50, 50],
+                paddingTopLeft: [leftPadding, 50],
+                paddingBottomRight: [rightPadding, 50],
                 maxZoom: 6,
                 animate: true,
                 duration: 1.5
             });
         }
-    }, [selectedCountryBounds, map]);
+    }, [selectedCountryBounds, map, leftPadding, rightPadding]);
 
     useEffect(() => {
         if (routePreviews && routePreviews.length > 0) {
@@ -91,13 +94,14 @@ const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert, s
 
             if (hasPoints && bounds.isValid()) {
                 map.flyToBounds(bounds, {
-                    padding: [50, 50],
+                    paddingTopLeft: [leftPadding, 50],
+                    paddingBottomRight: [rightPadding, 50],
                     animate: true,
                     duration: 1.5
                 });
             }
         }
-    }, [routePreviews, map]);
+    }, [routePreviews, map, leftPadding, rightPadding]);
 
     return null;
 };
@@ -135,6 +139,8 @@ export interface MapComponentProps {
     selectedElectricityOutage?: PowerOutage | null;
     checkedWaterIncidents?: WaterIncident[];
     selectedWaterIncident?: WaterIncident | null;
+    leftPadding?: number;
+    rightPadding?: number;
 }
 
 const MapComponent = ({
@@ -155,7 +161,9 @@ const MapComponent = ({
     checkedElectricityOutages = [],
     selectedElectricityOutage = null,
     checkedWaterIncidents = [],
-    selectedWaterIncident = null
+    selectedWaterIncident = null,
+    leftPadding = 50,
+    rightPadding = 50
 }: MapComponentProps) => {
     const [events, setEvents] = useState<TrafficEvent[]>([]);
     const [countryData, setCountryData] = useState<any>(null); // GeoJSON FeatureCollection
@@ -518,6 +526,8 @@ const MapComponent = ({
                     selectedRailDisruption={selectedRailDisruption}
                     selectedCountryBounds={selectedCountryBounds}
                     routePreviews={routePreviews}
+                    leftPadding={leftPadding}
+                    rightPadding={rightPadding}
                 />
 
                 {/* Render Selected & Checked Trade Barrier Countries */}

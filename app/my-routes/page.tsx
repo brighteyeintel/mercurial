@@ -481,6 +481,8 @@ export default function RouteEditorPage() {
                         selectedElectricityOutage={selectedOutage}
                         checkedWaterIncidents={waterIncidents.filter(i => checkedWaterIncidentRefs.has(i.incidentRef))}
                         selectedWaterIncident={selectedWaterIncident}
+                        leftPadding={(isWarningsSidebarOpen || isNotamsSidebarOpen || isWeatherSidebarOpen || isRailSidebarOpen || isTradeSidebarOpen || isRoadsSidebarOpen || isGPSSidebarOpen || isElectricitySidebarOpen || isWaterSidebarOpen) ? 450 : 50}
+                        rightPadding={isRoutePanelOpen ? 500 : 50}
                     />
 
                     {/* Overlay Title for Map Context */}

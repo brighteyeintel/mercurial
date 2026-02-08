@@ -36,6 +36,8 @@ interface MapWrapperProps {
     selectedElectricityOutage?: PowerOutage | null;
     checkedWaterIncidents?: WaterIncident[];
     selectedWaterIncident?: WaterIncident | null;
+    leftPadding?: number;
+    rightPadding?: number;
 }
 
 export default function MapWrapper({
@@ -56,7 +58,9 @@ export default function MapWrapper({
     checkedElectricityOutages = [],
     selectedElectricityOutage = null,
     checkedWaterIncidents = [],
-    selectedWaterIncident = null
+    selectedWaterIncident = null,
+    leftPadding = 50,
+    rightPadding = 50
 }: MapWrapperProps) {
     return <Map
         selectedWarning={selectedWarning}
@@ -77,5 +81,7 @@ export default function MapWrapper({
         selectedElectricityOutage={selectedElectricityOutage}
         checkedWaterIncidents={checkedWaterIncidents}
         selectedWaterIncident={selectedWaterIncident}
+        leftPadding={leftPadding}
+        rightPadding={rightPadding}
     />;
 }
