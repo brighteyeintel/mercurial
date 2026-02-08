@@ -65,9 +65,9 @@ export default function RouteEditorPage() {
     // Map Layer Visibility State (lifted from Map.tsx)
     const [visibleCategories, setVisibleCategories] = useState<Record<string, boolean>>({
         "Road Works": false,
-        "Accident": true,
-        "Congestion": true,
-        "Maritime": true,
+        "Accident": false,
+        "Congestion": false,
+        "Maritime": false,
         "Other": true
     });
     const [isRoadsSidebarOpen, setIsRoadsSidebarOpen] = useState(false);

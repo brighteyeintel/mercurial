@@ -50,7 +50,7 @@ export default function MapWrapper({
     checkedNotams = [],
     checkedWeatherAlerts = [],
     checkedTradeCountries = [],
-    visibleCategories = { "Road Works": false, "Accident": true, "Congestion": true, "Maritime": true, "Other": true },
+    visibleCategories = { "Road Works": false, "Accident": false, "Congestion": false, "Maritime": false, "Other": true },
     checkedRailDisruptions = [],
     selectedRailDisruption = null,
     gpsJammingPoints = [],
