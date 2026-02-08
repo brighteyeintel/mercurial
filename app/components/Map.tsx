@@ -581,13 +581,6 @@ const MapComponent = ({
                     )
                 ))}
 
-                <Marker position={[51.505, -0.09]}>
-                    <Popup>
-                        <div className="font-bold">Mercurial Logistics</div>
-                        <div>Headquarters</div>
-                    </Popup>
-                </Marker>
-
                 {events
                     .filter(event => visibleCategories[mapCategoryToKey(event.category)])
                     .map((event) => {
