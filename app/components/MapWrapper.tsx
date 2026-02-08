@@ -25,7 +25,7 @@ interface MapWrapperProps {
     checkedNotams?: Notam[];
     checkedWeatherAlerts?: WeatherAlert[];
     checkedTradeCountries?: string[];
-    visibleCategories: Record<string, boolean>;
+    visibleCategories?: Record<string, boolean>;
 }
 
 export default function MapWrapper({
@@ -38,7 +38,7 @@ export default function MapWrapper({
     checkedNotams = [],
     checkedWeatherAlerts = [],
     checkedTradeCountries = [],
-    visibleCategories
+    visibleCategories = { "Road Works": false, "Accident": true, "Congestion": true, "Maritime": true, "Other": true }
 }: MapWrapperProps) {
     return <Map
         selectedWarning={selectedWarning}

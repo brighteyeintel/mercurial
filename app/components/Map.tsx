@@ -87,7 +87,7 @@ export interface MapComponentProps {
     checkedNotams?: Notam[];
     checkedWeatherAlerts?: WeatherAlert[];
     checkedTradeCountries?: string[];
-    visibleCategories: Record<string, boolean>;
+    visibleCategories?: Record<string, boolean>;
 }
 
 const MapComponent = ({
@@ -100,7 +100,7 @@ const MapComponent = ({
     checkedNotams = [],
     checkedWeatherAlerts = [],
     checkedTradeCountries = [],
-    visibleCategories
+    visibleCategories = { "Road Works": false, "Accident": true, "Congestion": true, "Maritime": true, "Other": true }
 }: MapComponentProps) => {
     const [events, setEvents] = useState<TrafficEvent[]>([]);
     const [countryData, setCountryData] = useState<any>(null); // GeoJSON FeatureCollection
