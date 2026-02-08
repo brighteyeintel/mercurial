@@ -9,4 +9,10 @@ export interface WeatherAlert {
     lat: number;   // Centroid latitude
     lon: number;   // Centroid longitude
     coordinates?: { latitude: number; longitude: number }[]; // For polygon representation
+    // Optional enriched fields from GDACS
+    alertLevel?: 'Green' | 'Orange' | 'Red';
+    country?: string;
+    eventType?: string;
+    severity?: string;
+    link?: string;
 }
