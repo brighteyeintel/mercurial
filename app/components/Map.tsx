@@ -10,13 +10,15 @@ import { NavigationWarning } from "../types/NavigationWarning";
 import { RoutePreviewData } from "../hooks/useRoutePreview";
 import { Notam } from "../types/Notam";
 import { WeatherAlert } from "../types/WeatherAlert";
+import { RailDisruption } from "../types/RailDisruption";
 import { TransportMode } from "../types/ShippingRouteData";
 
 // Component to handle map interactions like flying to coordinates
-const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert, selectedCountryBounds, routePreviews }: {
+const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert, selectedRailDisruption, selectedCountryBounds, routePreviews }: {
     selectedWarning?: NavigationWarning | null,
     selectedNotam?: Notam | null,
     selectedWeatherAlert?: WeatherAlert | null,
+    selectedRailDisruption?: RailDisruption | null,
     selectedCountryBounds?: L.LatLngBounds | null,
     routePreviews?: RoutePreviewData[]
 }) => {
@@ -49,6 +51,15 @@ const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert, s
             });
         }
     }, [selectedWeatherAlert, map]);
+
+    useEffect(() => {
+        if (selectedRailDisruption && selectedRailDisruption.lat != null && selectedRailDisruption.lon != null) {
+            map.flyTo([selectedRailDisruption.lat, selectedRailDisruption.lon], 9, {
+                animate: true,
+                duration: 1.5
+            });
+        }
+    }, [selectedRailDisruption, map]);
 
     useEffect(() => {
         if (selectedCountryBounds) {
@@ -106,11 +117,13 @@ export interface MapComponentProps {
     selectedWarning?: NavigationWarning | null;
     selectedNotam?: Notam | null;
     selectedWeatherAlert?: WeatherAlert | null;
+    selectedRailDisruption?: RailDisruption | null;
     routePreviews?: RoutePreviewData[];
     selectedTradeBarrierCountry?: string | null;
     checkedWarnings?: NavigationWarning[];
     checkedNotams?: Notam[];
     checkedWeatherAlerts?: WeatherAlert[];
+    checkedRailDisruptions?: RailDisruption[];
     checkedTradeCountries?: string[];
     visibleCategories?: Record<string, boolean>;
 }
@@ -119,11 +132,13 @@ const MapComponent = ({
     selectedWarning,
     selectedNotam,
     selectedWeatherAlert,
+    selectedRailDisruption,
     routePreviews = [],
     selectedTradeBarrierCountry,
     checkedWarnings = [],
     checkedNotams = [],
     checkedWeatherAlerts = [],
+    checkedRailDisruptions = [],
     checkedTradeCountries = [],
     visibleCategories = { "Road Works": false, "Accident": true, "Congestion": true, "Maritime": true, "Other": true }
 }: MapComponentProps) => {
@@ -309,6 +324,23 @@ const MapComponent = ({
         });
     };
 
+    const createRailIcon = () => {
+        return L.divIcon({
+            className: "rail-marker",
+            html: `<div style="
+        background-color: #22c55e;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+      "></div>`,
+            iconSize: [12, 12],
+            iconAnchor: [6, 6],
+            popupAnchor: [0, -8],
+        });
+    };
+
 
 
     const renderPopup = (event: TrafficEvent) => (
@@ -380,6 +412,14 @@ const MapComponent = ({
         return combined;
     }, [selectedWeatherAlert, checkedWeatherAlerts]);
 
+    const allRenderedRailDisruptions = useMemo(() => {
+        const combined = [...checkedRailDisruptions];
+        if (selectedRailDisruption && !combined.find(d => d.id === selectedRailDisruption.id)) {
+            combined.push(selectedRailDisruption);
+        }
+        return combined;
+    }, [selectedRailDisruption, checkedRailDisruptions]);
+
     return (
         <div className="relative h-full w-full">
             <MapContainer
@@ -399,6 +439,7 @@ const MapComponent = ({
                     selectedWarning={selectedWarning}
                     selectedNotam={selectedNotam}
                     selectedWeatherAlert={selectedWeatherAlert}
+                    selectedRailDisruption={selectedRailDisruption}
                     selectedCountryBounds={selectedCountryBounds}
                     routePreviews={routePreviews}
                 />
@@ -563,6 +604,26 @@ const MapComponent = ({
                         )}
                     </div>
                 ))}
+
+                {allRenderedRailDisruptions
+                    .filter((d: RailDisruption) => d.lat != null && d.lon != null)
+                    .map((d: RailDisruption, idx: number) => (
+                        <Marker
+                            key={`rail-disruption-${d.id}-${idx}`}
+                            position={[d.lat as number, d.lon as number]}
+                            icon={createRailIcon()}
+                        >
+                            <Popup>
+                                <div className="font-bold text-green-600">{d.title}</div>
+                                {d.stationName && (
+                                    <div className="text-xs text-zinc-600">{d.stationName}</div>
+                                )}
+                                {d.description && (
+                                    <div className="text-xs mt-1">{d.description}</div>
+                                )}
+                            </Popup>
+                        </Marker>
+                    ))}
 
             </MapContainer>
 

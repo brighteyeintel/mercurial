@@ -12,6 +12,7 @@ const Map = dynamic<MapComponentProps>(() => import('./Map'), {
 
 import { Notam } from '../types/Notam';
 import { WeatherAlert } from '../types/WeatherAlert';
+import { RailDisruption } from '../types/RailDisruption';
 
 // ... (dynamic import remains same)
 
@@ -26,6 +27,8 @@ interface MapWrapperProps {
     checkedWeatherAlerts?: WeatherAlert[];
     checkedTradeCountries?: string[];
     visibleCategories?: Record<string, boolean>;
+    checkedRailDisruptions?: RailDisruption[];
+    selectedRailDisruption?: RailDisruption | null;
 }
 
 export default function MapWrapper({
@@ -38,7 +41,9 @@ export default function MapWrapper({
     checkedNotams = [],
     checkedWeatherAlerts = [],
     checkedTradeCountries = [],
-    visibleCategories = { "Road Works": false, "Accident": true, "Congestion": true, "Maritime": true, "Other": true }
+    visibleCategories = { "Road Works": false, "Accident": true, "Congestion": true, "Maritime": true, "Other": true },
+    checkedRailDisruptions = [],
+    selectedRailDisruption = null
 }: MapWrapperProps) {
     return <Map
         selectedWarning={selectedWarning}
@@ -51,5 +56,7 @@ export default function MapWrapper({
         checkedWeatherAlerts={checkedWeatherAlerts}
         checkedTradeCountries={checkedTradeCountries}
         visibleCategories={visibleCategories}
-    />;
+        checkedRailDisruptions={checkedRailDisruptions}
+        selectedRailDisruption={selectedRailDisruption}
+        />;
 }

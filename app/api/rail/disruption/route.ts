@@ -1,17 +1,122 @@
 import { NextResponse } from 'next/server';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-interface RailDisruption {
-    id: string;
-    title: string;
-    status?: string;
-    description?: string;
-    operator?: string;
-    affected?: string[];
-    updatedAt?: string;
-    link?: string;
+import { RailDisruption } from '../types/RailDisruption';
+
+interface StationRecord {
+    stationName: string;
+    stationNameLower: string;
+    lat: number;
+    lon: number;
+    crsCode?: string;
+}
+
+let stationsCache: StationRecord[] | null = null;
+let stationsCachePromise: Promise<StationRecord[]> | null = null;
+
+async function loadStations(): Promise<StationRecord[]> {
+    if (stationsCache) return stationsCache;
+    if (stationsCachePromise) return stationsCachePromise;
+
+    stationsCachePromise = (async () => {
+        const stationsPath = path.join(process.cwd(), 'app', 'api', 'rail', 'stations.csv');
+        const raw = await readFile(stationsPath, 'utf8');
+        const lines = raw.split(/\r?\n/).filter(Boolean);
+        if (lines.length <= 1) return [];
+
+        // Header: stationName,lat,long,crsCode,...
+        const out: StationRecord[] = [];
+        for (const line of lines.slice(1)) {
+            const parts = line.split(',');
+            const stationName = (parts[0] ?? '').trim();
+            const lat = parseFloat((parts[1] ?? '').trim());
+            const lon = parseFloat((parts[2] ?? '').trim());
+            const crsCode = (parts[3] ?? '').trim() || undefined;
+
+            if (!stationName || Number.isNaN(lat) || Number.isNaN(lon)) continue;
+            out.push({
+                stationName,
+                stationNameLower: stationName.toLowerCase(),
+                lat,
+                lon,
+                crsCode,
+            });
+        }
+
+        // Prefer longer names first so e.g. "King's Cross" isn't swallowed by "Cross"
+        out.sort((a, b) => b.stationNameLower.length - a.stationNameLower.length);
+
+        stationsCache = out;
+        stationsCachePromise = null;
+        return out;
+    })().catch((e) => {
+        stationsCachePromise = null;
+        console.error('Failed to load stations.csv:', e);
+        return [];
+    });
+
+    return stationsCachePromise;
+}
+
+function isWordChar(ch: string | undefined): boolean {
+    if (!ch) return false;
+    return /[a-z0-9]/i.test(ch);
+}
+
+function containsStation(textLower: string, stationLower: string): boolean {
+    // Fast substring search with a simple word-boundary-ish check at edges.
+    let idx = textLower.indexOf(stationLower);
+    while (idx !== -1) {
+        const before = idx > 0 ? textLower[idx - 1] : undefined;
+        const after = idx + stationLower.length < textLower.length ? textLower[idx + stationLower.length] : undefined;
+
+        // If we're in the middle of an alphanumeric token, skip (reduces false positives).
+        if (!isWordChar(before) && !isWordChar(after)) {
+            return true;
+        }
+        idx = textLower.indexOf(stationLower, idx + 1);
+    }
+    return false;
+}
+
+async function expandWithStations(disruptions: RailDisruption[]): Promise<RailDisruption[]> {
+    const stations = await loadStations();
+    if (stations.length === 0) return disruptions;
+
+    const expanded: RailDisruption[] = [];
+    for (const d of disruptions) {
+        const blob = `${d.title ?? ''} ${d.description ?? ''} ${d.operator ?? ''} ${(d.affected ?? []).join(' ')}`.toLowerCase();
+        const matched: StationRecord[] = [];
+
+        for (const s of stations) {
+            if (containsStation(blob, s.stationNameLower)) {
+                matched.push(s);
+            }
+        }
+
+        if (matched.length === 0) {
+            expanded.push(d);
+            continue;
+        }
+
+        // Emit one disruption per matched station.
+        for (const s of matched) {
+            expanded.push({
+                ...d,
+                id: `${d.id}-${s.crsCode ?? s.stationNameLower.replace(/\s+/g, '-')}`,
+                lat: s.lat,
+                lon: s.lon,
+                stationName: s.stationName,
+                crsCode: s.crsCode,
+            });
+        }
+    }
+
+    return expanded;
 }
 
 function asString(value: unknown): string | undefined {
@@ -91,14 +196,19 @@ async function fetchTrainlineDisruptions(): Promise<RailDisruption[]> {
         if (!Array.isArray(candidates)) {
             return [];
         }
-        
-        const result = candidates.flatMap(item =>
-            item.incidents.map((incident: any) => ({
+
+        const flattened = candidates.flatMap((item: any) => {
+            const incidents = Array.isArray(item?.incidents) ? item.incidents : [];
+            if (incidents.length === 0) return [item];
+            return incidents.map((incident: any) => ({
                 ...item,
-                ...incident
-            }))
-        );
-        return result.map((it: any, i: number) => normalizeDisruption(it, i));
+                ...incident,
+            }));
+        });
+
+        const normalized = flattened.map((it: any, i: number) => normalizeDisruption(it, i));
+        const result = await expandWithStations(normalized);
+        return result;
     } catch (error) {
         console.error('Error fetching Trainline railway status:', error);
         return [];
