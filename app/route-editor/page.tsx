@@ -42,9 +42,25 @@ export default function RouteEditorPage() {
     const [selectedTradeCountry, setSelectedTradeCountry] = useState<string | null>(null);
     const [availableTradeCountries, setAvailableTradeCountries] = useState<string[]>([]);
 
+    // Persistent Selection State (Checkboxes)
+    const [checkedWarningIds, setCheckedWarningIds] = useState<Set<string>>(new Set());
+    const [checkedNotamIds, setCheckedNotamIds] = useState<Set<string>>(new Set());
+    const [checkedWeatherIds, setCheckedWeatherIds] = useState<Set<string>>(new Set());
+    const [checkedTradeBarrierIds, setCheckedTradeBarrierIds] = useState<Set<string>>(new Set());
+
     // Filter State
     const [availableAreas, setAvailableAreas] = useState<string[]>([]);
     const [selectedAreas, setSelectedAreas] = useState<Record<string, boolean>>({});
+
+    // Map Layer Visibility State (lifted from Map.tsx)
+    const [visibleCategories, setVisibleCategories] = useState<Record<string, boolean>>({
+        "Road Works": false,
+        "Accident": true,
+        "Congestion": true,
+        "Maritime": true,
+        "Other": true
+    });
+    const [isRoadsSidebarOpen, setIsRoadsSidebarOpen] = useState(false);
 
     // Route Preview Hook
     const routePreviewHook = useRoutePreview();
@@ -184,6 +200,120 @@ export default function RouteEditorPage() {
         }));
     };
 
+    // Toggle Checkbox Handlers
+    const toggleWarningCheck = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        e.stopPropagation();
+        setCheckedWarningIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const toggleNotamCheck = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        e.stopPropagation();
+        setCheckedNotamIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const toggleWeatherCheck = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        e.stopPropagation();
+        setCheckedWeatherIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const toggleTradeBarrierCheck = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        e.stopPropagation();
+        setCheckedTradeBarrierIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    // Select All / Deselect All Handlers
+    const toggleAllWarnings = () => {
+        const allVisibleIds = filteredWarnings.map(w => w.reference);
+        const allChecked = allVisibleIds.every(id => checkedWarningIds.has(id));
+        if (allChecked) {
+            setCheckedWarningIds(prev => {
+                const next = new Set(prev);
+                allVisibleIds.forEach(id => next.delete(id));
+                return next;
+            });
+        } else {
+            setCheckedWarningIds(prev => {
+                const next = new Set(prev);
+                allVisibleIds.forEach(id => next.add(id));
+                return next;
+            });
+        }
+    };
+
+    const toggleAllNotams = () => {
+        const allVisibleIds = notams.map(n => n.id || n.notamCode);
+        const allChecked = allVisibleIds.every(id => checkedNotamIds.has(id));
+        if (allChecked) {
+            setCheckedNotamIds(prev => {
+                const next = new Set(prev);
+                allVisibleIds.forEach(id => next.delete(id));
+                return next;
+            });
+        } else {
+            setCheckedNotamIds(prev => {
+                const next = new Set(prev);
+                allVisibleIds.forEach(id => next.add(id));
+                return next;
+            });
+        }
+    };
+
+    const toggleAllWeather = () => {
+        const allVisibleIds = weatherAlerts.map(a => a.id || a.event);
+        const allChecked = allVisibleIds.every(id => checkedWeatherIds.has(id));
+        if (allChecked) {
+            setCheckedWeatherIds(prev => {
+                const next = new Set(prev);
+                allVisibleIds.forEach(id => next.delete(id));
+                return next;
+            });
+        } else {
+            setCheckedWeatherIds(prev => {
+                const next = new Set(prev);
+                allVisibleIds.forEach(id => next.add(id));
+                return next;
+            });
+        }
+    };
+
+    const toggleAllTrade = () => {
+        const allVisibleIds = filteredTradeBarriers.map(b => b.id);
+        const allChecked = allVisibleIds.every(id => checkedTradeBarrierIds.has(id));
+        if (allChecked) {
+            setCheckedTradeBarrierIds(prev => {
+                const next = new Set(prev);
+                allVisibleIds.forEach(id => next.delete(id));
+                return next;
+            });
+        } else {
+            setCheckedTradeBarrierIds(prev => {
+                const next = new Set(prev);
+                allVisibleIds.forEach(id => next.add(id));
+                return next;
+            });
+        }
+    };
+
     return (
         <div className="flex h-screen flex-col bg-black text-white selection:bg-zinc-800 selection:text-zinc-100 overflow-hidden">
             <Navbar />
@@ -197,6 +327,11 @@ export default function RouteEditorPage() {
                         selectedWeatherAlert={selectedWeatherAlert}
                         routePreviews={routePreviewHook.routePreviews}
                         selectedTradeBarrierCountry={selectedBarrier ? selectedBarrier.country_or_territory.name : null}
+                        checkedWarnings={warnings.filter(w => checkedWarningIds.has(w.reference))}
+                        checkedNotams={notams.filter(n => checkedNotamIds.has(n.id || n.notamCode))}
+                        checkedWeatherAlerts={weatherAlerts.filter(a => checkedWeatherIds.has(a.id || a.event))}
+                        checkedTradeCountries={tradeBarriers.filter(b => checkedTradeBarrierIds.has(b.id)).map(b => b.country_or_territory.name)}
+                        visibleCategories={visibleCategories}
                     />
 
                     {/* Overlay Title for Map Context */}
@@ -209,9 +344,9 @@ export default function RouteEditorPage() {
 
 
                     {/* Feature Toggles */}
-                    <div className={`absolute top-4 z-[1000] flex flex-col gap-2 transition-all duration-300 ${(isWarningsSidebarOpen || isNotamsSidebarOpen || isWeatherSidebarOpen || isTradeSidebarOpen)
-                            ? 'left-[416px]'
-                            : 'left-4'
+                    <div className={`absolute top-4 z-[1000] flex flex-col gap-2 transition-all duration-300 ${(isWarningsSidebarOpen || isNotamsSidebarOpen || isWeatherSidebarOpen || isTradeSidebarOpen || isRoadsSidebarOpen)
+                        ? 'left-[416px]'
+                        : 'left-4'
                         }`}>
                         <button
                             onClick={() => {
@@ -219,6 +354,7 @@ export default function RouteEditorPage() {
                                 setIsNotamsSidebarOpen(false);
                                 setIsWeatherSidebarOpen(false);
                                 setIsTradeSidebarOpen(false);
+                                setIsRoadsSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isWarningsSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Navigation Warnings"
@@ -232,6 +368,7 @@ export default function RouteEditorPage() {
                                 setIsWarningsSidebarOpen(false);
                                 setIsWeatherSidebarOpen(false);
                                 setIsTradeSidebarOpen(false);
+                                setIsRoadsSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isNotamsSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Aviation NOTAMs"
@@ -245,6 +382,7 @@ export default function RouteEditorPage() {
                                 setIsWarningsSidebarOpen(false);
                                 setIsNotamsSidebarOpen(false);
                                 setIsTradeSidebarOpen(false);
+                                setIsRoadsSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isWeatherSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Weather Alerts"
@@ -258,11 +396,26 @@ export default function RouteEditorPage() {
                                 setIsWarningsSidebarOpen(false);
                                 setIsNotamsSidebarOpen(false);
                                 setIsWeatherSidebarOpen(false);
+                                setIsRoadsSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isTradeSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Trade Barriers"
                         >
                             {isTradeSidebarOpen ? <ChevronLeft className="h-5 w-5 text-zinc-300" /> : <Building2 className="h-5 w-5 text-emerald-500" />}
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setIsRoadsSidebarOpen(!isRoadsSidebarOpen);
+                                setIsWarningsSidebarOpen(false);
+                                setIsNotamsSidebarOpen(false);
+                                setIsWeatherSidebarOpen(false);
+                                setIsTradeSidebarOpen(false);
+                            }}
+                            className={`p-2 rounded-lg border shadow-xl transition-all ${isRoadsSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
+                            title="Toggle Road Layers"
+                        >
+                            {isRoadsSidebarOpen ? <ChevronLeft className="h-5 w-5 text-zinc-300" /> : <AlertTriangle className="h-5 w-5 text-orange-500" />}
                         </button>
                     </div>
 
@@ -274,7 +427,15 @@ export default function RouteEditorPage() {
                                     <AlertTriangle className="h-4 w-4" />
                                     Navigation Warnings
                                 </h3>
-                                <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">{filteredWarnings.length}</span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={toggleAllWarnings}
+                                        className="text-[10px] text-zinc-400 hover:text-zinc-200 px-2 py-0.5 border border-zinc-700 rounded hover:bg-zinc-800 transition-colors"
+                                    >
+                                        {filteredWarnings.length > 0 && filteredWarnings.every(w => checkedWarningIds.has(w.reference)) ? 'Deselect All' : 'Select All'}
+                                    </button>
+                                    <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">{filteredWarnings.length}</span>
+                                </div>
                             </div>
 
                             {/* Filters Section */}
@@ -294,6 +455,14 @@ export default function RouteEditorPage() {
                                         </button>
                                     ))}
                                 </div>
+
+                                {/* Maritime Layer Toggle */}
+                                <div className="flex items-center gap-3 mt-4 pt-3 border-t border-zinc-800/50 group cursor-pointer" onClick={() => setVisibleCategories(prev => ({ ...prev, "Maritime": !prev["Maritime"] }))}>
+                                    <div className={`w-4 h-4 rounded border border-zinc-600 flex items-center justify-center transition-colors ${visibleCategories["Maritime"] ? 'bg-cyan-700/50' : 'bg-transparent'}`}>
+                                        {visibleCategories["Maritime"] && <div className="w-2 h-2 bg-white rounded-sm" />}
+                                    </div>
+                                    <span className="text-xs text-cyan-400 group-hover:text-cyan-300 transition-colors font-medium">Show Maritime Events</span>
+                                </div>
                             </div>
 
                             <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
@@ -304,7 +473,15 @@ export default function RouteEditorPage() {
                                         className={`p-4 border-b border-zinc-800/50 cursor-pointer hover:bg-zinc-900/50 transition-colors ${selectedWarning === warning ? 'bg-amber-950/20 border-l-4 border-l-amber-500' : 'border-l-4 border-l-transparent'}`}
                                     >
                                         <div className="flex justify-between items-start mb-2">
-                                            <span className="font-bold text-sm text-zinc-200">{warning.reference}</span>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checkedWarningIds.has(warning.reference)}
+                                                    onChange={(e) => toggleWarningCheck(warning.reference, e)}
+                                                    className="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-amber-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                                                />
+                                                <span className="font-bold text-sm text-zinc-200">{warning.reference}</span>
+                                            </div>
                                             <div className="flex flex-col items-end gap-1">
                                                 <span className="text-[10px] font-mono text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded">{warning.datetime.split(' ')[0]}</span>
                                                 {warning.areaName && (
@@ -350,7 +527,15 @@ export default function RouteEditorPage() {
                                     <Plane className="h-4 w-4" />
                                     Aviation NOTAMs
                                 </h3>
-                                <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">{notams.length}</span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={toggleAllNotams}
+                                        className="text-[10px] text-zinc-400 hover:text-zinc-200 px-2 py-0.5 border border-zinc-700 rounded hover:bg-zinc-800 transition-colors"
+                                    >
+                                        {notams.length > 0 && notams.every(n => checkedNotamIds.has(n.id || n.notamCode)) ? 'Deselect All' : 'Select All'}
+                                    </button>
+                                    <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">{notams.length}</span>
+                                </div>
                             </div>
 
                             <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
@@ -361,7 +546,15 @@ export default function RouteEditorPage() {
                                         className={`p-4 border-b border-zinc-800/50 cursor-pointer hover:bg-zinc-900/50 transition-colors ${selectedNotam === notam ? 'bg-blue-950/20 border-l-4 border-l-blue-500' : 'border-l-4 border-l-transparent'}`}
                                     >
                                         <div className="flex justify-between items-start mb-2">
-                                            <span className="font-bold text-sm text-zinc-200">{notam.notamCode}</span>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checkedNotamIds.has(notam.id || notam.notamCode)}
+                                                    onChange={(e) => toggleNotamCheck(notam.id || notam.notamCode, e)}
+                                                    className="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-blue-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                                                />
+                                                <span className="font-bold text-sm text-zinc-200">{notam.notamCode}</span>
+                                            </div>
                                             <div className="flex flex-col items-end gap-1">
                                                 <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-800/50 px-1.5 py-0.5 rounded border border-zinc-700/50">
                                                     {notam.type}
@@ -393,7 +586,15 @@ export default function RouteEditorPage() {
                                     <CloudLightning className="h-4 w-4" />
                                     Weather Alerts
                                 </h3>
-                                <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">{weatherAlerts.length}</span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={toggleAllWeather}
+                                        className="text-[10px] text-zinc-400 hover:text-zinc-200 px-2 py-0.5 border border-zinc-700 rounded hover:bg-zinc-800 transition-colors"
+                                    >
+                                        {weatherAlerts.length > 0 && weatherAlerts.every(a => checkedWeatherIds.has(a.id || a.event)) ? 'Deselect All' : 'Select All'}
+                                    </button>
+                                    <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">{weatherAlerts.length}</span>
+                                </div>
                             </div>
 
                             <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
@@ -404,7 +605,15 @@ export default function RouteEditorPage() {
                                         className={`p-4 border-b border-zinc-800/50 cursor-pointer hover:bg-zinc-900/50 transition-colors ${selectedWeatherAlert === alert ? 'bg-purple-950/20 border-l-4 border-l-purple-500' : 'border-l-4 border-l-transparent'}`}
                                     >
                                         <div className="flex justify-between items-start mb-2">
-                                            <span className="font-bold text-sm text-zinc-200">{alert.event}</span>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checkedWeatherIds.has(alert.id || alert.event)}
+                                                    onChange={(e) => toggleWeatherCheck(alert.id || alert.event, e)}
+                                                    className="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-purple-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                                                />
+                                                <span className="font-bold text-sm text-zinc-200">{alert.event}</span>
+                                            </div>
                                             <div className="flex items-center gap-1">
                                                 {getWeatherIcon(alert.tags)}
                                             </div>
@@ -433,7 +642,15 @@ export default function RouteEditorPage() {
                                     <Building2 className="h-4 w-4" />
                                     Trade Barriers
                                 </h3>
-                                <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">{filteredTradeBarriers.length}</span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={toggleAllTrade}
+                                        className="text-[10px] text-zinc-400 hover:text-zinc-200 px-2 py-0.5 border border-zinc-700 rounded hover:bg-zinc-800 transition-colors"
+                                    >
+                                        {filteredTradeBarriers.length > 0 && filteredTradeBarriers.every(b => checkedTradeBarrierIds.has(b.id)) ? 'Deselect All' : 'Select All'}
+                                    </button>
+                                    <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">{filteredTradeBarriers.length}</span>
+                                </div>
                             </div>
 
                             <div className="px-4 py-3 border-b border-zinc-800 space-y-3 bg-zinc-900/30">
@@ -480,8 +697,16 @@ export default function RouteEditorPage() {
                                         className={`p-4 border-b border-zinc-800/50 cursor-pointer hover:bg-zinc-900/50 transition-colors ${selectedBarrier === barrier ? 'bg-emerald-950/20 border-l-4 border-l-emerald-500' : 'border-l-4 border-l-transparent'}`}
                                     >
                                         <div className="flex justify-between items-start mb-2">
-                                            <span className="font-bold text-xs text-zinc-200 line-clamp-2 flex-1 mr-2">{barrier.title}</span>
-                                            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${barrier.is_resolved
+                                            <div className="flex items-start gap-3 flex-1">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checkedTradeBarrierIds.has(barrier.id)}
+                                                    onChange={(e) => toggleTradeBarrierCheck(barrier.id, e)}
+                                                    className="mt-1 w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-0 focus:ring-offset-0 cursor-pointer flex-shrink-0"
+                                                />
+                                                <span className="font-bold text-xs text-zinc-200 line-clamp-2 mr-2">{barrier.title}</span>
+                                            </div>
+                                            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border flex-shrink-0 ${barrier.is_resolved
                                                 ? 'text-emerald-400 bg-emerald-950/30 border-emerald-900/30'
                                                 : 'text-amber-400 bg-amber-950/30 border-amber-900/30'
                                                 }`}>
@@ -513,6 +738,30 @@ export default function RouteEditorPage() {
                                                 )}
                                             </div>
                                         )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Roads Sidebar Overlay */}
+                    {isRoadsSidebarOpen && (
+                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col pt-16 shadow-2xl transition-transform">
+                            <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
+                                <h3 className="text-sm font-bold text-orange-500 uppercase tracking-wider flex items-center gap-2">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    Road Layers
+                                </h3>
+                            </div>
+
+                            <div className="p-4 space-y-3">
+                                <p className="text-xs text-zinc-500 mb-4">Toggle visibility of road-related map layers.</p>
+                                {["Road Works", "Accident", "Congestion", "Other"].map(key => (
+                                    <div key={key} className="flex items-center gap-3 group cursor-pointer" onClick={() => setVisibleCategories(prev => ({ ...prev, [key]: !prev[key] }))}>
+                                        <div className={`w-5 h-5 rounded border border-zinc-600 flex items-center justify-center transition-colors ${visibleCategories[key] ? 'bg-zinc-700/50' : 'bg-transparent'}`}>
+                                            {visibleCategories[key] && <div className="w-2.5 h-2.5 bg-white rounded-sm" />}
+                                        </div>
+                                        <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">{key}</span>
                                     </div>
                                 ))}
                             </div>

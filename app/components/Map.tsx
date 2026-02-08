@@ -83,21 +83,27 @@ export interface MapComponentProps {
     selectedWeatherAlert?: WeatherAlert | null;
     routePreviews?: RoutePreviewData[];
     selectedTradeBarrierCountry?: string | null;
+    checkedWarnings?: NavigationWarning[];
+    checkedNotams?: Notam[];
+    checkedWeatherAlerts?: WeatherAlert[];
+    checkedTradeCountries?: string[];
+    visibleCategories: Record<string, boolean>;
 }
 
-const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert, routePreviews = [], selectedTradeBarrierCountry }: MapComponentProps) => {
+const MapComponent = ({
+    selectedWarning,
+    selectedNotam,
+    selectedWeatherAlert,
+    routePreviews = [],
+    selectedTradeBarrierCountry,
+    checkedWarnings = [],
+    checkedNotams = [],
+    checkedWeatherAlerts = [],
+    checkedTradeCountries = [],
+    visibleCategories
+}: MapComponentProps) => {
     const [events, setEvents] = useState<TrafficEvent[]>([]);
     const [countryData, setCountryData] = useState<any>(null); // GeoJSON FeatureCollection
-
-    const [visibleCategories, setVisibleCategories] = useState<Record<string, boolean>>({
-        "Road Works": false, // Default off to reduce clutter
-        "Accident": true,
-        "Congestion": true,
-        "Maritime": true,
-        "Other": true
-    });
-
-    const [isLegendOpen, setIsLegendOpen] = useState(true);
 
     // Fetch Country GeoJSON
     useEffect(() => {
@@ -128,6 +134,15 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert, ro
         // Includes match
         return countryData.features.find((f: any) => f.properties.name.toLowerCase().includes(search));
     }, [countryData, selectedTradeBarrierCountry]);
+
+    const checkedCountryFeatures = useMemo(() => {
+        if (!countryData || checkedTradeCountries.length === 0) return [];
+        return checkedTradeCountries.map(country => {
+            const search = country.toLowerCase();
+            const exact = countryData.features.find((f: any) => f.properties.name.toLowerCase() === search);
+            return exact || countryData.features.find((f: any) => f.properties.name.toLowerCase().includes(search));
+        }).filter(Boolean);
+    }, [countryData, checkedTradeCountries]);
 
     const selectedCountryBounds = useMemo(() => {
         if (!selectedCountryFeature) return null;
@@ -269,12 +284,7 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert, ro
         });
     };
 
-    const toggleCategory = (key: string) => {
-        setVisibleCategories(prev => ({
-            ...prev,
-            [key]: !prev[key]
-        }));
-    };
+
 
     const renderPopup = (event: TrafficEvent) => (
         <Popup className="traffic-popup">
@@ -319,6 +329,32 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert, ro
         </Popup>
     );
 
+    // Combine selected and checked items for rendering
+    const allRenderedWarnings = useMemo(() => {
+        const combined = [...checkedWarnings];
+        if (selectedWarning && !combined.find(w => w.reference === selectedWarning.reference)) {
+            combined.push(selectedWarning);
+        }
+        return combined;
+    }, [selectedWarning, checkedWarnings]);
+
+    const allRenderedNotams = useMemo(() => {
+        const combined = [...checkedNotams];
+        if (selectedNotam && !combined.find(n => n.id === selectedNotam.id)) {
+            combined.push(selectedNotam);
+        }
+        return combined;
+    }, [selectedNotam, checkedNotams]);
+
+    const allRenderedWeatherAlerts = useMemo(() => {
+        const combined = [...checkedWeatherAlerts];
+        // Simplified unique check based on event and start time
+        if (selectedWeatherAlert && !combined.find(a => a.event === selectedWeatherAlert.event && a.start === selectedWeatherAlert.start)) {
+            combined.push(selectedWeatherAlert);
+        }
+        return combined;
+    }, [selectedWeatherAlert, checkedWeatherAlerts]);
+
     return (
         <div className="relative h-full w-full">
             <MapContainer
@@ -341,10 +377,10 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert, ro
                     selectedCountryBounds={selectedCountryBounds}
                 />
 
-                {/* Render Selected Trade Barrier Country */}
+                {/* Render Selected & Checked Trade Barrier Countries */}
                 {selectedCountryFeature && (
                     <GeoJSON
-                        key={selectedTradeBarrierCountry} // Force re-render on country change
+                        key={`selected-${selectedTradeBarrierCountry}`}
                         data={selectedCountryFeature}
                         style={{
                             color: '#fbbf24', // Amber-400
@@ -356,24 +392,41 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert, ro
                         }}
                     />
                 )}
-
-                {/* Render Selected Weather Alert */}
-                {selectedWeatherAlert && selectedWeatherAlert.coordinates && selectedWeatherAlert.coordinates.length > 0 && (
-                    <Polygon
-                        positions={selectedWeatherAlert.coordinates.map(c => [c.latitude, c.longitude])}
-                        pathOptions={{
-                            color: '#8b5cf6', // Violet
-                            fillColor: '#8b5cf6',
-                            fillOpacity: 0.3
+                {checkedCountryFeatures.map((feature: any, idx) => (
+                    <GeoJSON
+                        key={`checked-country-${idx}`}
+                        data={feature}
+                        style={{
+                            color: '#fbbf24', // Amber-400
+                            weight: 2,
+                            opacity: 0.7,
+                            dashArray: '5, 5',
+                            fillColor: '#fbbf24',
+                            fillOpacity: 0.1
                         }}
-                    >
-                        <Popup>
-                            <div className="font-bold text-violet-600">{selectedWeatherAlert.event}</div>
-                            <div className="text-xs text-zinc-600">{selectedWeatherAlert.sender_name}</div>
-                            <div className="text-xs mt-1 italic">{new Date(selectedWeatherAlert.start * 1000).toLocaleString()}</div>
-                        </Popup>
-                    </Polygon>
-                )}
+                    />
+                ))}
+
+                {/* Render Selected & Checked Weather Alerts */}
+                {allRenderedWeatherAlerts.map((alert, idx) => (
+                    alert.coordinates && alert.coordinates.length > 0 && (
+                        <Polygon
+                            key={`weather-${alert.event}-${idx}`}
+                            positions={alert.coordinates.map(c => [c.latitude, c.longitude])}
+                            pathOptions={{
+                                color: '#8b5cf6', // Violet
+                                fillColor: '#8b5cf6',
+                                fillOpacity: 0.3
+                            }}
+                        >
+                            <Popup>
+                                <div className="font-bold text-violet-600">{alert.event}</div>
+                                <div className="text-xs text-zinc-600">{alert.sender_name}</div>
+                                <div className="text-xs mt-1 italic">{new Date(alert.start * 1000).toLocaleString()}</div>
+                            </Popup>
+                        </Polygon>
+                    )
+                ))}
 
                 <Marker position={[51.505, -0.09]}>
                     <Popup>
@@ -413,35 +466,38 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert, ro
                         );
                     })}
 
-                {/* Render Selected Navigation Warning */}
-                {selectedWarning && selectedWarning.coordinates && selectedWarning.coordinates.length > 0 && (
-                    selectedWarning.isArea ? (
-                        <Polygon
-                            positions={selectedWarning.coordinates.map(c => [c.latitude, c.longitude])}
-                            pathOptions={{ color: 'red', fillColor: 'red', fillOpacity: 0.2 }}
-                        >
-                            <Popup>
-                                <div className="font-bold text-red-600">{selectedWarning.reference}</div>
-                                <div className="text-xs">{selectedWarning.datetime}</div>
-                                <div className="text-xs text-zinc-600 mt-1">Area Warning</div>
-                            </Popup>
-                        </Polygon>
-                    ) : (
-                        selectedWarning.coordinates.map((coord, idx) => (
-                            <Marker
-                                key={`${selectedWarning.reference}-${idx}`}
-                                position={[coord.latitude, coord.longitude]}
-                                icon={createWarningIcon()}
+                {/* Render Selected & Checked Navigation Warnings */}
+                {allRenderedWarnings.map((warning, idx) => (
+                    warning.coordinates && warning.coordinates.length > 0 && (
+                        warning.isArea ? (
+                            <Polygon
+                                key={`warn-poly-${warning.reference}-${idx}`}
+                                positions={warning.coordinates.map(c => [c.latitude, c.longitude])}
+                                pathOptions={{ color: 'red', fillColor: 'red', fillOpacity: 0.2 }}
                             >
                                 <Popup>
-                                    <div className="font-bold text-red-600">{selectedWarning.reference}</div>
-                                    <div className="text-xs">{selectedWarning.datetime}</div>
-                                    <div className="text-xs text-zinc-600 mt-1">Point {idx + 1}</div>
+                                    <div className="font-bold text-red-600">{warning.reference}</div>
+                                    <div className="text-xs">{warning.datetime}</div>
+                                    <div className="text-xs text-zinc-600 mt-1">Area Warning</div>
                                 </Popup>
-                            </Marker>
-                        ))
+                            </Polygon>
+                        ) : (
+                            warning.coordinates.map((coord, cIdx) => (
+                                <Marker
+                                    key={`warn-marker-${warning.reference}-${idx}-${cIdx}`}
+                                    position={[coord.latitude, coord.longitude]}
+                                    icon={createWarningIcon()}
+                                >
+                                    <Popup>
+                                        <div className="font-bold text-red-600">{warning.reference}</div>
+                                        <div className="text-xs">{warning.datetime}</div>
+                                        <div className="text-xs text-zinc-600 mt-1">Point {cIdx + 1}</div>
+                                    </Popup>
+                                </Marker>
+                            ))
+                        )
                     )
-                )}
+                ))}
 
                 {/* Render Route Previews as Polylines */}
                 {routePreviews.map((preview) => (
@@ -457,70 +513,33 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert, ro
                     />
                 ))}
 
-                {/* Render Selected NOTAM */}
-                {selectedNotam && (
-                    <>
+                {/* Render Selected & Checked NOTAMs */}
+                {allRenderedNotams.map((notam, idx) => (
+                    <div key={`notam-group-${idx}`}>
                         {/* Always render a Marker for visibility */}
                         <Marker
-                            position={[selectedNotam.latitude, selectedNotam.longitude]}
+                            position={[notam.latitude, notam.longitude]}
                             icon={createNotamIcon()}
                         >
                             <Popup>
-                                <div className="font-bold text-blue-500">{selectedNotam.notamCode}</div>
-                                <div className="text-xs text-zinc-600">{selectedNotam.title}</div>
+                                <div className="font-bold text-blue-500">{notam.notamCode}</div>
+                                <div className="text-xs text-zinc-600">{notam.title}</div>
                             </Popup>
                         </Marker>
 
                         {/* Render Circle only if radius is specified and valid */}
-                        {selectedNotam.radius && selectedNotam.radius > 0 && selectedNotam.radius !== 255 && (
+                        {notam.radius && notam.radius > 0 && notam.radius !== 255 && (
                             <Circle
-                                center={[selectedNotam.latitude, selectedNotam.longitude]}
-                                radius={selectedNotam.radius * 1852} // Assuming NM, converting to meters. If 1, ~1.8km.
+                                center={[notam.latitude, notam.longitude]}
+                                radius={notam.radius * 1852} // Assuming NM, converting to meters. If 1, ~1.8km.
                                 pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.2, dashArray: '5, 10' }}
                             />
                         )}
-                    </>
-                )}
+                    </div>
+                ))}
 
             </MapContainer>
 
-            {/* Legend Overlay */}
-            <div className="absolute top-4 right-4 z-[1000] bg-zinc-900/90 backdrop-blur-md border border-zinc-700 rounded-lg shadow-xl overflow-hidden max-w-[200px]">
-                <div
-                    className="p-3 bg-zinc-800 border-b border-zinc-700 flex justify-between items-center cursor-pointer hover:bg-zinc-700/50 transition-colors"
-                    onClick={() => setIsLegendOpen(!isLegendOpen)}
-                >
-                    <h3 className="text-sm font-bold text-zinc-100 uppercase tracking-wider">Map Layers</h3>
-                    <span className="text-zinc-400 text-xs">{isLegendOpen ? '▼' : '▶'}</span>
-                </div>
-
-                {isLegendOpen && (
-                    <div className="p-3 space-y-2">
-                        {Object.entries(visibleCategories).map(([key, isVisible]) => {
-                            let color;
-                            switch (key) {
-                                case "Road Works": color = "#f97316"; break;
-                                case "Accident": color = "#ef4444"; break;
-                                case "Congestion": color = "#eab308"; break;
-                                case "Maritime": color = "#06b6d4"; break;
-                                default: color = "#3b82f6";
-                            }
-
-                            return (
-                                <div key={key} className="flex items-center gap-3 group cursor-pointer" onClick={() => toggleCategory(key)}>
-                                    <div className={`w-4 h-4 rounded border border-zinc-600 flex items-center justify-center transition-colors ${isVisible ? 'bg-zinc-700/50' : 'bg-transparent'}`}>
-                                        {isVisible && <div className="w-2 h-2 bg-white rounded-sm" />}
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-1">
-                                        <div className="w-3 h-3 rounded-full border border-white/50" style={{ backgroundColor: color }} />
-                                        <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">{key}</span>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
         </div>
     );
 };

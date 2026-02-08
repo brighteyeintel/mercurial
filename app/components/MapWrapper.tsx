@@ -21,9 +21,35 @@ interface MapWrapperProps {
     selectedWeatherAlert?: WeatherAlert | null;
     routePreviews?: RoutePreviewData[];
     selectedTradeBarrierCountry?: string | null;
+    checkedWarnings?: NavigationWarning[];
+    checkedNotams?: Notam[];
+    checkedWeatherAlerts?: WeatherAlert[];
+    checkedTradeCountries?: string[];
+    visibleCategories: Record<string, boolean>;
 }
 
-export default function MapWrapper({ selectedWarning, selectedNotam, selectedWeatherAlert, routePreviews = [], selectedTradeBarrierCountry }: MapWrapperProps) {
-    return <Map selectedWarning={selectedWarning} selectedNotam={selectedNotam} selectedWeatherAlert={selectedWeatherAlert} routePreviews={routePreviews} selectedTradeBarrierCountry={selectedTradeBarrierCountry} />;
+export default function MapWrapper({
+    selectedWarning,
+    selectedNotam,
+    selectedWeatherAlert,
+    routePreviews = [],
+    selectedTradeBarrierCountry,
+    checkedWarnings = [],
+    checkedNotams = [],
+    checkedWeatherAlerts = [],
+    checkedTradeCountries = [],
+    visibleCategories
+}: MapWrapperProps) {
+    return <Map
+        selectedWarning={selectedWarning}
+        selectedNotam={selectedNotam}
+        selectedWeatherAlert={selectedWeatherAlert}
+        routePreviews={routePreviews}
+        selectedTradeBarrierCountry={selectedTradeBarrierCountry}
+        checkedWarnings={checkedWarnings}
+        checkedNotams={checkedNotams}
+        checkedWeatherAlerts={checkedWeatherAlerts}
+        checkedTradeCountries={checkedTradeCountries}
+        visibleCategories={visibleCategories}
+    />;
 }
-
