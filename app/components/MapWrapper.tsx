@@ -20,9 +20,10 @@ interface MapWrapperProps {
     selectedNotam?: Notam | null;
     selectedWeatherAlert?: WeatherAlert | null;
     routePreviews?: RoutePreviewData[];
+    selectedTradeBarrierCountry?: string | null;
 }
 
-export default function MapWrapper({ selectedWarning, selectedNotam, selectedWeatherAlert, routePreviews = [] }: MapWrapperProps) {
-    return <Map selectedWarning={selectedWarning} selectedNotam={selectedNotam} selectedWeatherAlert={selectedWeatherAlert} routePreviews={routePreviews} />;
+export default function MapWrapper({ selectedWarning, selectedNotam, selectedWeatherAlert, routePreviews = [], selectedTradeBarrierCountry }: MapWrapperProps) {
+    return <Map selectedWarning={selectedWarning} selectedNotam={selectedNotam} selectedWeatherAlert={selectedWeatherAlert} routePreviews={routePreviews} selectedTradeBarrierCountry={selectedTradeBarrierCountry} />;
 }
 

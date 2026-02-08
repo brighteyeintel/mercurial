@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
-import { Globe, AlertTriangle, ChevronLeft, Ship, Plane, CloudLightning, Sun, CloudRain, Snowflake, Wind, Waves, Flame } from "lucide-react";
+import { Globe, AlertTriangle, ChevronLeft, Ship, Plane, CloudLightning, Sun, CloudRain, Snowflake, Wind, Waves, Flame, Building2, Search, X } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { NavigationWarning } from '../types/NavigationWarning';
 import { Notam } from '../types/Notam';
 import { WeatherAlert } from '../types/WeatherAlert';
+import { TradeBarrier } from '../types/TradeBarrier';
 import ShippingRoutePanel from './ShippingRoutePanel';
 import { useRoutePreview } from "../hooks/useRoutePreview"; // Import Route Preview Hook
 
@@ -31,6 +32,15 @@ export default function RouteEditorPage() {
     const [weatherAlerts, setWeatherAlerts] = useState<WeatherAlert[]>([]);
     const [selectedWeatherAlert, setSelectedWeatherAlert] = useState<WeatherAlert | null>(null);
     const [isWeatherSidebarOpen, setIsWeatherSidebarOpen] = useState(false);
+
+    // Trade Barriers State
+    const [tradeBarriers, setTradeBarriers] = useState<TradeBarrier[]>([]);
+    const [filteredTradeBarriers, setFilteredTradeBarriers] = useState<TradeBarrier[]>([]);
+    const [selectedBarrier, setSelectedBarrier] = useState<TradeBarrier | null>(null);
+    const [isTradeSidebarOpen, setIsTradeSidebarOpen] = useState(false);
+    const [tradeSearchTerm, setTradeSearchTerm] = useState("");
+    const [selectedTradeCountry, setSelectedTradeCountry] = useState<string | null>(null);
+    const [availableTradeCountries, setAvailableTradeCountries] = useState<string[]>([]);
 
     // Filter State
     const [availableAreas, setAvailableAreas] = useState<string[]>([]);
@@ -123,6 +133,21 @@ export default function RouteEditorPage() {
                 }
             })
             .catch(err => console.error("Failed to fetch Weather Alerts", err));
+
+        // Fetch Trade Barriers
+        fetch('/api/trade/barriers')
+            .then(res => res.json())
+            .then(data => {
+                if (data.barriers) {
+                    const barriers: TradeBarrier[] = data.barriers;
+                    setTradeBarriers(barriers);
+
+                    // Extract Countries
+                    const countries = Array.from(new Set(barriers.map(b => b.country_or_territory.name))).sort();
+                    setAvailableTradeCountries(countries);
+                }
+            })
+            .catch(err => console.error("Failed to fetch Trade Barriers", err));
     }, []);
 
     // Filter Logic
@@ -132,6 +157,25 @@ export default function RouteEditorPage() {
             setFilteredWarnings(filtered);
         }
     }, [warnings, selectedAreas]);
+
+    // Trade Filter Logic
+    useEffect(() => {
+        let result = tradeBarriers;
+
+        if (selectedTradeCountry) {
+            result = result.filter(b => b.country_or_territory.name === selectedTradeCountry);
+        }
+
+        if (tradeSearchTerm) {
+            const term = tradeSearchTerm.toLowerCase();
+            result = result.filter(b =>
+                b.title.toLowerCase().includes(term) ||
+                b.sectors.some(s => s.name.toLowerCase().includes(term))
+            );
+        }
+
+        setFilteredTradeBarriers(result);
+    }, [tradeBarriers, selectedTradeCountry, tradeSearchTerm]);
 
     const toggleAreaFilter = (area: string) => {
         setSelectedAreas(prev => ({
@@ -152,6 +196,7 @@ export default function RouteEditorPage() {
                         selectedNotam={selectedNotam}
                         selectedWeatherAlert={selectedWeatherAlert}
                         routePreviews={routePreviewHook.routePreviews}
+                        selectedTradeBarrierCountry={selectedBarrier ? selectedBarrier.country_or_territory.name : null}
                     />
 
                     {/* Overlay Title for Map Context */}
@@ -162,13 +207,18 @@ export default function RouteEditorPage() {
                         </h2>
                     </div>
 
+
                     {/* Feature Toggles */}
-                    <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
+                    <div className={`absolute top-4 z-[1000] flex flex-col gap-2 transition-all duration-300 ${(isWarningsSidebarOpen || isNotamsSidebarOpen || isWeatherSidebarOpen || isTradeSidebarOpen)
+                            ? 'left-[416px]'
+                            : 'left-4'
+                        }`}>
                         <button
                             onClick={() => {
                                 setIsWarningsSidebarOpen(!isWarningsSidebarOpen);
                                 setIsNotamsSidebarOpen(false);
                                 setIsWeatherSidebarOpen(false);
+                                setIsTradeSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isWarningsSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Navigation Warnings"
@@ -181,6 +231,7 @@ export default function RouteEditorPage() {
                                 setIsNotamsSidebarOpen(!isNotamsSidebarOpen);
                                 setIsWarningsSidebarOpen(false);
                                 setIsWeatherSidebarOpen(false);
+                                setIsTradeSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isNotamsSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Aviation NOTAMs"
@@ -193,11 +244,25 @@ export default function RouteEditorPage() {
                                 setIsWeatherSidebarOpen(!isWeatherSidebarOpen);
                                 setIsWarningsSidebarOpen(false);
                                 setIsNotamsSidebarOpen(false);
+                                setIsTradeSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isWeatherSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Weather Alerts"
                         >
                             {isWeatherSidebarOpen ? <ChevronLeft className="h-5 w-5 text-zinc-300" /> : <CloudLightning className="h-5 w-5 text-purple-500" />}
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setIsTradeSidebarOpen(!isTradeSidebarOpen);
+                                setIsWarningsSidebarOpen(false);
+                                setIsNotamsSidebarOpen(false);
+                                setIsWeatherSidebarOpen(false);
+                            }}
+                            className={`p-2 rounded-lg border shadow-xl transition-all ${isTradeSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
+                            title="Toggle Trade Barriers"
+                        >
+                            {isTradeSidebarOpen ? <ChevronLeft className="h-5 w-5 text-zinc-300" /> : <Building2 className="h-5 w-5 text-emerald-500" />}
                         </button>
                     </div>
 
@@ -354,6 +419,100 @@ export default function RouteEditorPage() {
                                         <div className="text-xs text-zinc-400 font-normal leading-relaxed line-clamp-3">
                                             {alert.description}
                                         </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Trade Barriers Sidebar Overlay */}
+                    {isTradeSidebarOpen && (
+                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col pt-16 shadow-2xl transition-transform">
+                            <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
+                                <h3 className="text-sm font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-2">
+                                    <Building2 className="h-4 w-4" />
+                                    Trade Barriers
+                                </h3>
+                                <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">{filteredTradeBarriers.length}</span>
+                            </div>
+
+                            <div className="px-4 py-3 border-b border-zinc-800 space-y-3 bg-zinc-900/30">
+                                {/* Search Bar */}
+                                <div className="relative">
+                                    <Search className="absolute left-2 top-2 h-4 w-4 text-zinc-500" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search barriers, sectors..."
+                                        className="w-full bg-zinc-900 border border-zinc-700 rounded pl-8 pr-4 py-1.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500"
+                                        value={tradeSearchTerm}
+                                        onChange={(e) => setTradeSearchTerm(e.target.value)}
+                                    />
+                                    {tradeSearchTerm && (
+                                        <button
+                                            onClick={() => setTradeSearchTerm("")}
+                                            className="absolute right-2 top-2 text-zinc-500 hover:text-zinc-300"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Country Filter */}
+                                <div>
+                                    <select
+                                        className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-zinc-500"
+                                        value={selectedTradeCountry || ""}
+                                        onChange={(e) => setSelectedTradeCountry(e.target.value || null)}
+                                    >
+                                        <option value="">All Countries</option>
+                                        {availableTradeCountries.map(country => (
+                                            <option key={country} value={country}>{country}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+                                {filteredTradeBarriers.map((barrier) => (
+                                    <div
+                                        key={barrier.id}
+                                        onClick={() => setSelectedBarrier(barrier === selectedBarrier ? null : barrier)}
+                                        className={`p-4 border-b border-zinc-800/50 cursor-pointer hover:bg-zinc-900/50 transition-colors ${selectedBarrier === barrier ? 'bg-emerald-950/20 border-l-4 border-l-emerald-500' : 'border-l-4 border-l-transparent'}`}
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="font-bold text-xs text-zinc-200 line-clamp-2 flex-1 mr-2">{barrier.title}</span>
+                                            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${barrier.is_resolved
+                                                ? 'text-emerald-400 bg-emerald-950/30 border-emerald-900/30'
+                                                : 'text-amber-400 bg-amber-950/30 border-amber-900/30'
+                                                }`}>
+                                                {barrier.is_resolved ? 'Resolved' : 'Active'}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-[10px] text-zinc-400 font-mono bg-zinc-800/50 px-1.5 py-0.5 rounded">
+                                                {barrier.country_or_territory.name}
+                                            </span>
+                                            <span className="text-[10px] text-zinc-500">
+                                                {new Date(barrier.status_date).toLocaleDateString()}
+                                            </span>
+                                        </div>
+
+                                        {selectedBarrier === barrier && (
+                                            <div className="mt-2 text-xs text-zinc-400 font-normal leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
+                                                <p className="mb-2">{barrier.summary}</p>
+
+                                                {barrier.sectors && barrier.sectors.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 mt-2">
+                                                        {barrier.sectors.map((sector, i) => (
+                                                            <span key={i} className="text-[9px] text-zinc-500 border border-zinc-800 rounded px-1">
+                                                                {sector.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>

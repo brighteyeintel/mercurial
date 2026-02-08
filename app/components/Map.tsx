@@ -1,10 +1,10 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup, Circle, Polygon, Polyline, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polygon, Polyline, useMap, GeoJSON } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 // Fix for missing marker icons in leaflet production bundle
 import L from "leaflet";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { Clock, ExternalLink } from "lucide-react";
 import { NavigationWarning } from "../types/NavigationWarning";
 import { RoutePreviewData } from "../hooks/useRoutePreview";
@@ -13,7 +13,12 @@ import { WeatherAlert } from "../types/WeatherAlert";
 import { TransportMode } from "../types/ShippingRouteData";
 
 // Component to handle map interactions like flying to coordinates
-const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert }: { selectedWarning?: NavigationWarning | null, selectedNotam?: Notam | null, selectedWeatherAlert?: WeatherAlert | null }) => {
+const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert, selectedCountryBounds }: {
+    selectedWarning?: NavigationWarning | null,
+    selectedNotam?: Notam | null,
+    selectedWeatherAlert?: WeatherAlert | null,
+    selectedCountryBounds?: L.LatLngBounds | null
+}) => {
     const map = useMap();
 
     useEffect(() => {
@@ -44,6 +49,17 @@ const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert }:
         }
     }, [selectedWeatherAlert, map]);
 
+    useEffect(() => {
+        if (selectedCountryBounds) {
+            map.flyToBounds(selectedCountryBounds, {
+                padding: [50, 50],
+                maxZoom: 6,
+                animate: true,
+                duration: 1.5
+            });
+        }
+    }, [selectedCountryBounds, map]);
+
     return null;
 };
 
@@ -66,10 +82,12 @@ export interface MapComponentProps {
     selectedNotam?: Notam | null;
     selectedWeatherAlert?: WeatherAlert | null;
     routePreviews?: RoutePreviewData[];
+    selectedTradeBarrierCountry?: string | null;
 }
 
-const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert, routePreviews = [] }: MapComponentProps) => {
+const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert, routePreviews = [], selectedTradeBarrierCountry }: MapComponentProps) => {
     const [events, setEvents] = useState<TrafficEvent[]>([]);
+    const [countryData, setCountryData] = useState<any>(null); // GeoJSON FeatureCollection
 
     const [visibleCategories, setVisibleCategories] = useState<Record<string, boolean>>({
         "Road Works": false, // Default off to reduce clutter
@@ -80,6 +98,45 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert, ro
     });
 
     const [isLegendOpen, setIsLegendOpen] = useState(true);
+
+    // Fetch Country GeoJSON
+    useEffect(() => {
+        const fetchCountries = async () => {
+            try {
+                const res = await fetch('/api/trade/countries');
+                if (res.ok) {
+                    const data = await res.json();
+                    setCountryData(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch country data:", error);
+            }
+        };
+        fetchCountries();
+    }, []);
+
+    const selectedCountryFeature = useMemo(() => {
+        if (!countryData || !selectedTradeBarrierCountry) return null;
+
+        // Normalize search string
+        const search = selectedTradeBarrierCountry.toLowerCase();
+
+        // Exact match first
+        const exact = countryData.features.find((f: any) => f.properties.name.toLowerCase() === search);
+        if (exact) return exact;
+
+        // Includes match
+        return countryData.features.find((f: any) => f.properties.name.toLowerCase().includes(search));
+    }, [countryData, selectedTradeBarrierCountry]);
+
+    const selectedCountryBounds = useMemo(() => {
+        if (!selectedCountryFeature) return null;
+        try {
+            return L.geoJSON(selectedCountryFeature as any).getBounds();
+        } catch (e) {
+            return null;
+        }
+    }, [selectedCountryFeature]);
 
     useEffect(() => {
         // Override the default marker icon paths because Leaflet's defaults break in Webpack/Next.js
@@ -268,6 +325,7 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert, ro
                 center={[51.505, -0.09]} // Default center (London)
                 zoom={3} // Zoomed out for global view since we have global maritime data
                 scrollWheelZoom={true}
+                zoomControl={false}
                 className="h-[calc(100vh-64px)] w-full z-0"
             >
                 <TileLayer
@@ -276,7 +334,28 @@ const MapComponent = ({ selectedWarning, selectedNotam, selectedWeatherAlert, ro
                     className="map-tiles-dark"
                 />
 
-                <MapController selectedWarning={selectedWarning} selectedNotam={selectedNotam} selectedWeatherAlert={selectedWeatherAlert} />
+                <MapController
+                    selectedWarning={selectedWarning}
+                    selectedNotam={selectedNotam}
+                    selectedWeatherAlert={selectedWeatherAlert}
+                    selectedCountryBounds={selectedCountryBounds}
+                />
+
+                {/* Render Selected Trade Barrier Country */}
+                {selectedCountryFeature && (
+                    <GeoJSON
+                        key={selectedTradeBarrierCountry} // Force re-render on country change
+                        data={selectedCountryFeature}
+                        style={{
+                            color: '#fbbf24', // Amber-400
+                            weight: 2,
+                            opacity: 1,
+                            dashArray: '5, 5',
+                            fillColor: '#fbbf24',
+                            fillOpacity: 0.2
+                        }}
+                    />
+                )}
 
                 {/* Render Selected Weather Alert */}
                 {selectedWeatherAlert && selectedWeatherAlert.coordinates && selectedWeatherAlert.coordinates.length > 0 && (
