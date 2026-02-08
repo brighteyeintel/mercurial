@@ -1,8 +1,8 @@
 export interface Port {
     regionName: string;
-    xcoord: number;
+    latitude: number;
     portNumber: number;
-    ycoord: number;
+    longitude: number;
     regionNumber: number;
     portName: string;
     countryCode: string;

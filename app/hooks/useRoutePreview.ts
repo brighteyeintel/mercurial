@@ -54,8 +54,24 @@ async function fetchFlightRoute(
 }
 
 async function fetchSeaRoute(origin: string, destination: string): Promise<[number, number][] | null> {
-    // TODO: Integrate with maritime routing API when available
-    console.log(`[STUB] Sea route from ${origin} to ${destination} - not yet implemented`);
+    try {
+        // API expects port numbers. origin/destination should be the port number codes.
+        const response = await fetch(`/api/maritime/navigation?source=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`);
+
+        if (!response.ok) {
+            console.error("Failed to fetch sea route");
+            return null;
+        }
+
+        const data = await response.json();
+
+        if (data.path && Array.isArray(data.path)) {
+            // API returns GeoJSON [lon, lat], Leaflet needs [lat, lon]
+            return data.path.map((p: [number, number]) => [p[1], p[0]]);
+        }
+    } catch (error) {
+        console.error("Error fetching sea route:", error);
+    }
     return null;
 }
 
@@ -139,15 +155,26 @@ export function useRoutePreview() {
             }
 
             if (stage.transport) {
-                const originName = stage.transport.source.name;
-                const destinationName = stage.transport.destination.name;
+                let origin = stage.transport.source.name;
+                let destination = stage.transport.destination.name;
+
+                // For Sea mode, prioritize the 'code' field which should contain the port number
+                if (stage.transport.mode === TransportMode.Sea) {
+                    origin = stage.transport.source.code || stage.transport.source.name;
+                    destination = stage.transport.destination.code || stage.transport.destination.name;
+                }
+
+                if (!origin || !destination) {
+                    console.warn(`Stage ${i}: Missing origin or destination`);
+                    continue;
+                }
 
                 let result: RoutePreviewData | null = null;
 
                 switch (stage.transport.mode) {
                     case TransportMode.Road:
-                        if (originName && destinationName) {
-                            result = await fetchRoadRoute(originName, destinationName);
+                        if (origin && destination) {
+                            result = await fetchRoadRoute(origin, destination);
                         }
                         break;
                     case TransportMode.Flight:
@@ -164,8 +191,8 @@ export function useRoutePreview() {
                         }
                         break;
                     case TransportMode.Sea:
-                        if (originName && destinationName) {
-                            const seaCoords = await fetchSeaRoute(originName, destinationName);
+                        if (origin && destination) {
+                            const seaCoords = await fetchSeaRoute(origin, destination);
                             if (seaCoords) {
                                 result = {
                                     stageIndex: i,
@@ -176,8 +203,8 @@ export function useRoutePreview() {
                         }
                         break;
                     case TransportMode.Rail:
-                        if (originName && destinationName) {
-                            const railCoords = await fetchRailRoute(originName, destinationName);
+                        if (origin && destination) {
+                            const railCoords = await fetchRailRoute(origin, destination);
                             if (railCoords) {
                                 result = {
                                     stageIndex: i,

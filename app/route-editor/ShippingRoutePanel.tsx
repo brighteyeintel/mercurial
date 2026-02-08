@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react"
 import { ShippingRouteData, Stage, TransportMode, Transport, Holding, Location } from "../types/ShippingRouteData";
+import { Port, WorldPortsData } from "../types/Port";
 import { Plus, Trash2, Save, ArrowLeft, Box, Clock, Globe, Check, X } from "lucide-react";
 import Link from "next/link";
 
@@ -53,6 +54,7 @@ export default function ShippingRoutePanel({
     const [routes, setRoutes] = useState<Array<{ _id: string; name: string }>>([]);
     const [isLoadingRoutes, setIsLoadingRoutes] = useState(false);
     const [airports, setAirports] = useState<any[]>([]);
+    const [ports, setPorts] = useState<Port[]>([]);
 
     const { data: session, status } = useSession()
 
@@ -62,6 +64,13 @@ export default function ShippingRoutePanel({
             <option key={a.icao} value={a.icao}>{a.name} ({a.city}, {a.country})</option>
         ));
     }, [airports]);
+
+    // Memoize port options
+    const portOptions = useMemo(() => {
+        return ports.map(p => (
+            <option key={p.portNumber} value={p.portName}>{p.portName} ({p.countryCode})</option>
+        ));
+    }, [ports]);
 
     const fetchRoutes = async () => {
         if (status === "loading") {
@@ -139,6 +148,15 @@ export default function ShippingRoutePanel({
                 }
             })
             .catch(err => console.error("Failed to fetch airports", err));
+
+        fetch('/api/maritime/portlocations')
+            .then(res => res.json())
+            .then((data: WorldPortsData) => {
+                if (data.ports) {
+                    setPorts(Object.values(data.ports));
+                }
+            })
+            .catch(err => console.error("Failed to fetch ports", err));
     }, []);
 
     const loadRouteForEdit = async (id: string) => {
@@ -258,6 +276,31 @@ export default function ShippingRoutePanel({
         };
         setStages(newStages);
     };
+
+    const onPortSelect = (index: number, type: 'source' | 'destination', name: string) => {
+        const newStages = [...stages];
+        const stage = newStages[index];
+        if (!stage.transport) return;
+
+        // Case-insensitive check for port name
+        const port = ports.find(p => p.portName.toLowerCase() === name.toLowerCase());
+
+        newStages[index] = {
+            transport: {
+                ...stage.transport,
+                [type]: {
+                    ...stage.transport[type],
+                    name: name,
+                    ...(port ? {
+                        latitude: port.latitude,
+                        longitude: port.longitude,
+                        code: port.portNumber.toString() // Port Number acts as the "code" for Sea transport
+                    } : {})
+                }
+            } as Transport
+        };
+        setStages(newStages);
+    }
 
     const resolveCoordinates = async (index: number, type: 'source' | 'destination') => {
         const stage = stages[index];
@@ -650,8 +693,15 @@ export default function ShippingRoutePanel({
                                                                     type="text"
                                                                     className="flex h-8 flex-1 rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
                                                                     placeholder="Location Name"
+                                                                    list={stage.transport.mode === TransportMode.Sea ? "ports-datalist" : undefined}
                                                                     value={stage.transport.source.name}
-                                                                    onChange={(e) => updateTransportLocation(index, 'source', 'name', e.target.value)}
+                                                                    onChange={(e) => {
+                                                                        if (stage.transport!.mode === TransportMode.Sea) {
+                                                                            onPortSelect(index, 'source', e.target.value);
+                                                                        } else {
+                                                                            updateTransportLocation(index, 'source', 'name', e.target.value);
+                                                                        }
+                                                                    }}
                                                                 />
                                                                 {stage.transport.mode === TransportMode.Road && (
                                                                     <button
@@ -682,7 +732,7 @@ export default function ShippingRoutePanel({
                                                                 <input
                                                                     type="text"
                                                                     className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                                                                    placeholder="Location Code (Optional)"
+                                                                    placeholder={stage.transport.mode === TransportMode.Sea ? "Port Number" : "Location Code (Optional)"}
                                                                     value={stage.transport.source.code || ''}
                                                                     onChange={(e) => updateTransportLocation(index, 'source', 'code', e.target.value)}
                                                                 />
@@ -717,8 +767,15 @@ export default function ShippingRoutePanel({
                                                                     type="text"
                                                                     className="flex h-8 flex-1 rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
                                                                     placeholder="Location Name"
+                                                                    list={stage.transport.mode === TransportMode.Sea ? "ports-datalist" : undefined}
                                                                     value={stage.transport.destination.name}
-                                                                    onChange={(e) => updateTransportLocation(index, 'destination', 'name', e.target.value)}
+                                                                    onChange={(e) => {
+                                                                        if (stage.transport!.mode === TransportMode.Sea) {
+                                                                            onPortSelect(index, 'destination', e.target.value);
+                                                                        } else {
+                                                                            updateTransportLocation(index, 'destination', 'name', e.target.value);
+                                                                        }
+                                                                    }}
                                                                 />
                                                                 {stage.transport.mode === TransportMode.Road && (
                                                                     <button
@@ -748,8 +805,8 @@ export default function ShippingRoutePanel({
                                                             <div className="col-span-2">
                                                                 <input
                                                                     type="text"
-                                                                    className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                                                                    placeholder="Location Code (Optional)"
+                                                                    className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                                                                    placeholder={stage.transport.mode === TransportMode.Sea ? "Port Number" : "Location Code (Optional)"}
                                                                     value={stage.transport.destination.code || ''}
                                                                     onChange={(e) => updateTransportLocation(index, 'destination', 'code', e.target.value)}
                                                                 />
@@ -829,6 +886,9 @@ export default function ShippingRoutePanel({
             </div>
             <datalist id="airports-datalist">
                 {airportOptions}
+            </datalist>
+            <datalist id="ports-datalist">
+                {portOptions}
             </datalist>
         </div>
     );
