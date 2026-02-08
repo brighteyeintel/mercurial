@@ -688,6 +688,16 @@ export default function RouteEditorPage() {
                                             </div>
                                         )}
 
+                                        {(d.stationName || d.crsCode || (d.lat != null && d.lon != null)) && (
+                                            <div className="mb-2 space-y-1">
+                                                {d.stationName && (
+                                                    <div className="text-[10px] text-zinc-400 font-mono">
+                                                        {d.stationName} ({d.crsCode})
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
                                         {d.description && (
                                             <div className="text-xs text-zinc-400 font-normal leading-relaxed line-clamp-3">
                                                 {d.description}
