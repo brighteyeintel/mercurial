@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
-import { Globe, AlertTriangle, ChevronLeft, Ship, Plane, CloudLightning, Sun, CloudRain, Snowflake, Wind, Waves, Flame, Building2, Search, X } from "lucide-react";
+import { Globe, AlertTriangle, ChevronLeft, Ship, Plane, CloudLightning, Sun, CloudRain, Snowflake, Wind, Waves, Flame, Building2, Search, X, Train } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { NavigationWarning } from '../types/NavigationWarning';
 import { Notam } from '../types/Notam';
@@ -10,6 +10,17 @@ import { WeatherAlert } from '../types/WeatherAlert';
 import { TradeBarrier } from '../types/TradeBarrier';
 import ShippingRoutePanel from './ShippingRoutePanel';
 import { useRoutePreview } from "../hooks/useRoutePreview"; // Import Route Preview Hook
+
+interface RailDisruption {
+    id: string;
+    title: string;
+    status?: string;
+    description?: string;
+    operator?: string;
+    affected?: string[];
+    updatedAt?: string;
+    link?: string;
+}
 
 const MapWrapper = dynamic(() => import('../components/MapWrapper'), {
     ssr: false,
@@ -33,6 +44,11 @@ export default function RouteEditorPage() {
     const [selectedWeatherAlert, setSelectedWeatherAlert] = useState<WeatherAlert | null>(null);
     const [isWeatherSidebarOpen, setIsWeatherSidebarOpen] = useState(false);
 
+    // Rail Disruptions (Trainline) State
+    const [railDisruptions, setRailDisruptions] = useState<RailDisruption[]>([]);
+    const [selectedRailDisruption, setSelectedRailDisruption] = useState<RailDisruption | null>(null);
+    const [isRailSidebarOpen, setIsRailSidebarOpen] = useState(false);
+
     // Trade Barriers State
     const [tradeBarriers, setTradeBarriers] = useState<TradeBarrier[]>([]);
     const [filteredTradeBarriers, setFilteredTradeBarriers] = useState<TradeBarrier[]>([]);
@@ -46,6 +62,7 @@ export default function RouteEditorPage() {
     const [checkedWarningIds, setCheckedWarningIds] = useState<Set<string>>(new Set());
     const [checkedNotamIds, setCheckedNotamIds] = useState<Set<string>>(new Set());
     const [checkedWeatherIds, setCheckedWeatherIds] = useState<Set<string>>(new Set());
+    const [checkedRailDisruptionIds, setCheckedRailDisruptionIds] = useState<Set<string>>(new Set());
     const [checkedTradeBarrierIds, setCheckedTradeBarrierIds] = useState<Set<string>>(new Set());
 
     // Filter State
@@ -150,6 +167,16 @@ export default function RouteEditorPage() {
             })
             .catch(err => console.error("Failed to fetch Weather Alerts", err));
 
+        // Fetch Rail Disruptions (Trainline)
+        fetch('/api/rail/disruption')
+            .then(res => res.json())
+            .then(data => {
+                if (data.disruptions) {
+                    setRailDisruptions(data.disruptions);
+                }
+            })
+            .catch(err => console.error("Failed to fetch Rail Disruptions", err));
+
         // Fetch Trade Barriers
         fetch('/api/trade/barriers')
             .then(res => res.json())
@@ -224,6 +251,16 @@ export default function RouteEditorPage() {
     const toggleWeatherCheck = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
         e.stopPropagation();
         setCheckedWeatherIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const toggleRailDisruptionCheck = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        e.stopPropagation();
+        setCheckedRailDisruptionIds(prev => {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id);
             else next.add(id);
@@ -314,6 +351,24 @@ export default function RouteEditorPage() {
         }
     };
 
+    const toggleAllRailDisruptions = () => {
+        const allVisibleIds = railDisruptions.map(d => d.id);
+        const allChecked = allVisibleIds.every(id => checkedRailDisruptionIds.has(id));
+        if (allChecked) {
+            setCheckedRailDisruptionIds(prev => {
+                const next = new Set(prev);
+                allVisibleIds.forEach(id => next.delete(id));
+                return next;
+            });
+        } else {
+            setCheckedRailDisruptionIds(prev => {
+                const next = new Set(prev);
+                allVisibleIds.forEach(id => next.add(id));
+                return next;
+            });
+        }
+    };
+
     return (
         <div className="flex h-screen flex-col bg-black text-white selection:bg-zinc-800 selection:text-zinc-100 overflow-hidden">
             <Navbar />
@@ -344,7 +399,7 @@ export default function RouteEditorPage() {
 
 
                     {/* Feature Toggles */}
-                    <div className={`absolute top-4 z-[1000] flex flex-col gap-2 transition-all duration-300 ${(isWarningsSidebarOpen || isNotamsSidebarOpen || isWeatherSidebarOpen || isTradeSidebarOpen || isRoadsSidebarOpen)
+                    <div className={`absolute top-4 z-[1000] flex flex-col gap-2 transition-all duration-300 ${(isWarningsSidebarOpen || isNotamsSidebarOpen || isWeatherSidebarOpen || isRailSidebarOpen || isTradeSidebarOpen || isRoadsSidebarOpen)
                         ? 'left-[416px]'
                         : 'left-4'
                         }`}>
@@ -381,6 +436,7 @@ export default function RouteEditorPage() {
                                 setIsWeatherSidebarOpen(!isWeatherSidebarOpen);
                                 setIsWarningsSidebarOpen(false);
                                 setIsNotamsSidebarOpen(false);
+                                setIsRailSidebarOpen(false);
                                 setIsTradeSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
                             }}
@@ -392,10 +448,26 @@ export default function RouteEditorPage() {
 
                         <button
                             onClick={() => {
+                                setIsRailSidebarOpen(!isRailSidebarOpen);
+                                setIsWarningsSidebarOpen(false);
+                                setIsNotamsSidebarOpen(false);
+                                setIsWeatherSidebarOpen(false);
+                                setIsTradeSidebarOpen(false);
+                                setIsRoadsSidebarOpen(false);
+                            }}
+                            className={`p-2 rounded-lg border shadow-xl transition-all ${isRailSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
+                            title="Toggle Rail Disruptions"
+                        >
+                            {isRailSidebarOpen ? <ChevronLeft className="h-5 w-5 text-zinc-300" /> : <Train className="h-5 w-5 text-green-500" />}
+                        </button>
+
+                        <button
+                            onClick={() => {
                                 setIsTradeSidebarOpen(!isTradeSidebarOpen);
                                 setIsWarningsSidebarOpen(false);
                                 setIsNotamsSidebarOpen(false);
                                 setIsWeatherSidebarOpen(false);
+                                setIsRailSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isTradeSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
@@ -410,6 +482,7 @@ export default function RouteEditorPage() {
                                 setIsWarningsSidebarOpen(false);
                                 setIsNotamsSidebarOpen(false);
                                 setIsWeatherSidebarOpen(false);
+                                setIsRailSidebarOpen(false);
                                 setIsTradeSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isRoadsSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
@@ -513,6 +586,66 @@ export default function RouteEditorPage() {
                                                 </div>
                                             )}
                                         </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Rail Disruptions Sidebar Overlay */}
+                    {isRailSidebarOpen && (
+                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col pt-16 shadow-2xl transition-transform">
+                            <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
+                                <h3 className="text-sm font-bold text-green-500 uppercase tracking-wider flex items-center gap-2">
+                                    <Train className="h-4 w-4" />
+                                    Rail Disruptions
+                                </h3>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={toggleAllRailDisruptions}
+                                        className="text-[10px] text-zinc-400 hover:text-zinc-200 px-2 py-0.5 border border-zinc-700 rounded hover:bg-zinc-800 transition-colors"
+                                    >
+                                        {railDisruptions.length > 0 && railDisruptions.every(d => checkedRailDisruptionIds.has(d.id)) ? 'Deselect All' : 'Select All'}
+                                    </button>
+                                    <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">{railDisruptions.length}</span>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+                                {railDisruptions.map((d) => (
+                                    <div
+                                        key={d.id}
+                                        onClick={() => setSelectedRailDisruption(d)}
+                                        className={`p-4 border-b border-zinc-800/50 cursor-pointer hover:bg-zinc-900/50 transition-colors ${selectedRailDisruption?.id === d.id ? 'bg-green-950/20 border-l-4 border-l-green-500' : 'border-l-4 border-l-transparent'}`}
+                                    >
+                                        <div className="flex justify-between items-start mb-2 gap-3">
+                                            <div className="flex items-start gap-3 flex-1">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checkedRailDisruptionIds.has(d.id)}
+                                                    onChange={(e) => toggleRailDisruptionCheck(d.id, e)}
+                                                    className="mt-0.5 w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-green-500 focus:ring-0 focus:ring-offset-0 cursor-pointer flex-shrink-0"
+                                                />
+                                                <span className="font-bold text-xs text-zinc-200 line-clamp-2">{d.title}</span>
+                                            </div>
+                                            {d.status && (
+                                                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border flex-shrink-0 text-green-400 bg-green-950/30 border-green-900/30">
+                                                    {d.status}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {d.operator && (
+                                            <div className="text-[10px] text-zinc-500 font-mono mb-2">
+                                                {d.operator}
+                                            </div>
+                                        )}
+
+                                        {d.description && (
+                                            <div className="text-xs text-zinc-400 font-normal leading-relaxed line-clamp-3">
+                                                {d.description}
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
