@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
-import { Globe, AlertTriangle, ChevronLeft, ChevronRight, Layers, Ship, Plane, CloudLightning, Sun, CloudRain, Snowflake, Wind, Waves, Flame, Building2, Search, X, Train, Radio } from "lucide-react";
+import { Globe, AlertTriangle, ChevronLeft, ChevronRight, Layers, Ship, Plane, CloudLightning, Sun, CloudRain, Snowflake, Wind, Waves, Flame, Building2, Search, X, Train, Radio, Zap } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { NavigationWarning } from '../types/NavigationWarning';
 import { Notam } from '../types/Notam';
 import { WeatherAlert } from '../types/WeatherAlert';
 import { TradeBarrier } from '../types/TradeBarrier';
 import { GPSJammingPoint, GPSJammingData } from '../types/GPSJamming';
+import { PowerOutage, ElectricityData } from '../types/PowerOutage';
 import ShippingRoutePanel from './ShippingRoutePanel';
 import { useRoutePreview } from "../hooks/useRoutePreview"; // Import Route Preview Hook
 import { RailDisruption } from '../types/RailDisruption';
@@ -76,6 +77,14 @@ export default function RouteEditorPage() {
     const [isGPSSidebarOpen, setIsGPSSidebarOpen] = useState(false);
     const [gpsAttribution, setGpsAttribution] = useState<string>('');
     const [isGPSLoading, setIsGPSLoading] = useState(true);
+
+    // Electricity Utilities State
+    const [electricityOutages, setElectricityOutages] = useState<PowerOutage[]>([]);
+    const [isElectricitySidebarOpen, setIsElectricitySidebarOpen] = useState(false);
+    const [isElectricityLoading, setIsElectricityLoading] = useState(true);
+    const [selectedElectricityProvider, setSelectedElectricityProvider] = useState<'all' | 'ukpn' | 'nationalgrid' | 'northernpowergrid'>('all');
+    const [selectedOutage, setSelectedOutage] = useState<PowerOutage | null>(null);
+    const [checkedOutageIds, setCheckedOutageIds] = useState<Set<string>>(new Set());
     const [isRoutePanelOpen, setIsRoutePanelOpen] = useState(true);
 
     // Route Preview Hook
@@ -203,6 +212,18 @@ export default function RouteEditorPage() {
             })
             .catch(err => console.error("Failed to fetch GPS Jamming data", err))
             .finally(() => setIsGPSLoading(false));
+
+        // Fetch Electricity Outage Data
+        setIsElectricityLoading(true);
+        fetch('/api/utilities/electricity')
+            .then(res => res.json())
+            .then((data: ElectricityData) => {
+                if (data.outages) {
+                    setElectricityOutages(data.outages);
+                }
+            })
+            .catch(err => console.error("Failed to fetch electricity data", err))
+            .finally(() => setIsElectricityLoading(false));
     }, []);
 
     // Filter Logic
@@ -381,6 +402,26 @@ export default function RouteEditorPage() {
         }
     };
 
+    const toggleAllElectricityOutages = () => {
+        const visibleOutages = electricityOutages.filter(o => selectedElectricityProvider === 'all' || o.provider === selectedElectricityProvider);
+        const allVisibleIds = visibleOutages.map(o => o.id);
+        const allChecked = allVisibleIds.length > 0 && allVisibleIds.every(id => checkedOutageIds.has(id));
+
+        if (allChecked) {
+            setCheckedOutageIds(prev => {
+                const next = new Set(prev);
+                allVisibleIds.forEach(id => next.delete(id));
+                return next;
+            });
+        } else {
+            setCheckedOutageIds(prev => {
+                const next = new Set(prev);
+                allVisibleIds.forEach(id => next.add(id));
+                return next;
+            });
+        }
+    };
+
     return (
         <div className="flex h-screen flex-col bg-black text-white selection:bg-zinc-800 selection:text-zinc-100 overflow-hidden">
             <Navbar />
@@ -403,6 +444,8 @@ export default function RouteEditorPage() {
                         visibleCategories={visibleCategories}
                         gpsJammingPoints={gpsJammingPoints}
                         showGPSJamming={showGPSJamming}
+                        checkedElectricityOutages={electricityOutages.filter(o => checkedOutageIds.has(o.id))}
+                        selectedElectricityOutage={selectedOutage}
                     />
 
                     {/* Overlay Title for Map Context */}
@@ -415,7 +458,7 @@ export default function RouteEditorPage() {
 
 
                     {/* Feature Toggles */}
-                    <div className={`absolute top-4 z-1000 flex flex-col gap-2 transition-all duration-300 ${(isWarningsSidebarOpen || isNotamsSidebarOpen || isWeatherSidebarOpen || isRailSidebarOpen || isTradeSidebarOpen || isRoadsSidebarOpen || isGPSSidebarOpen)
+                    <div className={`absolute top-4 z-1000 flex flex-col gap-2 transition-all duration-300 ${(isWarningsSidebarOpen || isNotamsSidebarOpen || isWeatherSidebarOpen || isRailSidebarOpen || isTradeSidebarOpen || isRoadsSidebarOpen || isGPSSidebarOpen || isElectricitySidebarOpen)
                         ? 'left-[416px]'
                         : 'left-4'
                         }`}>
@@ -427,6 +470,7 @@ export default function RouteEditorPage() {
                                 setIsTradeSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
                                 setIsGPSSidebarOpen(false);
+                                setIsElectricitySidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isWarningsSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Navigation Warnings"
@@ -527,6 +571,23 @@ export default function RouteEditorPage() {
                             title="Toggle GPS Jamming Layer"
                         >
                             {isGPSSidebarOpen ? <ChevronLeft className="h-5 w-5 text-zinc-300" /> : <Radio className="h-5 w-5 text-red-500" />}
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setIsElectricitySidebarOpen(!isElectricitySidebarOpen);
+                                setIsWarningsSidebarOpen(false);
+                                setIsNotamsSidebarOpen(false);
+                                setIsWeatherSidebarOpen(false);
+                                setIsRailSidebarOpen(false);
+                                setIsTradeSidebarOpen(false);
+                                setIsRoadsSidebarOpen(false);
+                                setIsGPSSidebarOpen(false);
+                            }}
+                            className={`p-2 rounded-lg border shadow-xl transition-all ${isElectricitySidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
+                            title="Toggle UK Electricity Outages"
+                        >
+                            {isElectricitySidebarOpen ? <ChevronLeft className="h-5 w-5 text-zinc-300" /> : <Zap className="h-5 w-5 text-yellow-500" />}
                         </button>
                     </div>
 
@@ -1047,6 +1108,161 @@ export default function RouteEditorPage() {
                                         {gpsAttribution}
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Electricity Outages Sidebar Overlay */}
+                    {isElectricitySidebarOpen && (
+                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col pt-16 shadow-2xl transition-transform">
+                            <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
+                                <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-wider flex items-center gap-2">
+                                    <Zap className="h-4 w-4" />
+                                    UK Electricity Outages
+                                </h3>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={toggleAllElectricityOutages}
+                                        className="text-[10px] text-zinc-400 hover:text-zinc-200 px-2 py-0.5 border border-zinc-700 rounded hover:bg-zinc-800 transition-colors"
+                                    >
+                                        {electricityOutages.filter(o => selectedElectricityProvider === 'all' || o.provider === selectedElectricityProvider).length > 0 &&
+                                            electricityOutages
+                                                .filter(o => selectedElectricityProvider === 'all' || o.provider === selectedElectricityProvider)
+                                                .every(o => checkedOutageIds.has(o.id))
+                                            ? 'Deselect All' : 'Select All'}
+                                    </button>
+                                    <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">
+                                        {electricityOutages.filter(o => o.status === 'active' || o.status === 'investigating').length} active
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Provider Filter */}
+                            <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900/30">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-2">Filter by Provider</label>
+                                <select
+                                    value={selectedElectricityProvider}
+                                    onChange={(e) => setSelectedElectricityProvider(e.target.value as typeof selectedElectricityProvider)}
+                                    className="w-full bg-zinc-900 border border-zinc-700 text-zinc-300 text-xs rounded px-2 py-1.5 focus:outline-none focus:border-yellow-600"
+                                >
+                                    <option value="all">All Providers</option>
+                                    <option value="ukpn">UK Power Networks</option>
+                                    <option value="nationalgrid">National Grid</option>
+                                    <option value="northernpowergrid">Northern Power Grid</option>
+                                </select>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                                {isElectricityLoading ? (
+                                    <div className="flex items-center justify-center gap-2 py-8">
+                                        <div className="w-5 h-5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+                                        <span className="text-sm text-zinc-400">Fetching electricity data...</span>
+                                    </div>
+                                ) : electricityOutages
+                                    .filter(o => selectedElectricityProvider === 'all' || o.provider === selectedElectricityProvider)
+                                    .length === 0 ? (
+                                    <div className="text-center text-zinc-500 text-sm py-8">No outages found</div>
+                                ) : (
+                                    electricityOutages
+                                        .filter(o => selectedElectricityProvider === 'all' || o.provider === selectedElectricityProvider)
+                                        .map((outage) => (
+                                            <div
+                                                key={outage.id}
+                                                className={`p-3 rounded-lg border cursor-pointer transition-all ${selectedOutage?.id === outage.id
+                                                    ? 'bg-yellow-900/30 border-yellow-700'
+                                                    : 'bg-zinc-900/50 border-zinc-800 hover:bg-zinc-800/50'
+                                                    }`}
+                                                onClick={() => setSelectedOutage(selectedOutage?.id === outage.id ? null : outage)}
+                                            >
+                                                <div className="flex items-start gap-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={checkedOutageIds.has(outage.id)}
+                                                        onChange={(e) => {
+                                                            const newSet = new Set(checkedOutageIds);
+                                                            if (e.target.checked) {
+                                                                newSet.add(outage.id);
+                                                            } else {
+                                                                newSet.delete(outage.id);
+                                                            }
+                                                            setCheckedOutageIds(newSet);
+                                                        }}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="mt-1 accent-yellow-500"
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className={`w-2 h-2 rounded-full ${outage.status === 'active' || outage.status === 'investigating'
+                                                                ? 'bg-red-500 animate-pulse'
+                                                                : outage.status === 'restored'
+                                                                    ? 'bg-green-500'
+                                                                    : 'bg-yellow-500'
+                                                                }`}></span>
+                                                            <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded font-semibold ${outage.provider === 'ukpn'
+                                                                ? 'bg-blue-900/50 text-blue-400'
+                                                                : outage.provider === 'nationalgrid'
+                                                                    ? 'bg-purple-900/50 text-purple-400'
+                                                                    : 'bg-emerald-900/50 text-emerald-400'
+                                                                }`}>
+                                                                {outage.providerName}
+                                                            </span>
+                                                            <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded ${outage.type === 'planned'
+                                                                ? 'bg-zinc-800 text-zinc-400'
+                                                                : 'bg-red-900/50 text-red-400'
+                                                                }`}>
+                                                                {outage.type}
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-xs text-zinc-300 font-medium truncate">{outage.title}</div>
+                                                        {outage.region && (
+                                                            <div className="text-[10px] text-zinc-500 mt-1">{outage.region}</div>
+                                                        )}
+
+                                                        {selectedOutage?.id === outage.id && outage.description && (
+                                                            <div className="mt-2 text-xs text-zinc-400 leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
+                                                                {outage.description}
+                                                                {outage.postcodesAffected && outage.postcodesAffected.length > 0 && (
+                                                                    <div className="mt-2 flex flex-wrap gap-1">
+                                                                        {outage.postcodesAffected.slice(0, 8).map((pc, i) => (
+                                                                            <span key={i} className="text-[9px] bg-zinc-800 text-zinc-500 px-1 rounded">
+                                                                                {pc}
+                                                                            </span>
+                                                                        ))}
+                                                                        {outage.postcodesAffected.length > 8 && (
+                                                                            <span className="text-[9px] text-zinc-600">+{outage.postcodesAffected.length - 8} more</span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                                {outage.estimatedRestoration && (
+                                                                    <div className="mt-2 text-[10px] text-yellow-500">
+                                                                        Est. restoration: {new Date(outage.estimatedRestoration).toLocaleString()}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                )}
+                            </div>
+
+                            {/* Stats Footer */}
+                            <div className="p-3 border-t border-zinc-800 bg-zinc-900/50">
+                                <div className="grid grid-cols-3 gap-2 text-center">
+                                    <div>
+                                        <div className="text-sm font-bold text-blue-400">{electricityOutages.filter(o => o.provider === 'ukpn').length}</div>
+                                        <div className="text-[9px] text-zinc-500 uppercase">UKPN</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-bold text-purple-400">{electricityOutages.filter(o => o.provider === 'nationalgrid').length}</div>
+                                        <div className="text-[9px] text-zinc-500 uppercase">Nat Grid</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-bold text-emerald-400">{electricityOutages.filter(o => o.provider === 'northernpowergrid').length}</div>
+                                        <div className="text-[9px] text-zinc-500 uppercase">NPG</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
