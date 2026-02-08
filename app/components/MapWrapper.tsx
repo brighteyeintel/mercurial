@@ -15,6 +15,7 @@ import { WeatherAlert } from '../types/WeatherAlert';
 import { RailDisruption } from '../types/RailDisruption';
 import { GPSJammingPoint } from '../types/GPSJamming';
 import { PowerOutage } from '../types/PowerOutage';
+import { WaterIncident } from '../types/WaterIncident';
 
 interface MapWrapperProps {
     selectedWarning?: NavigationWarning | null;
@@ -33,6 +34,8 @@ interface MapWrapperProps {
     showGPSJamming?: boolean;
     checkedElectricityOutages?: PowerOutage[];
     selectedElectricityOutage?: PowerOutage | null;
+    checkedWaterIncidents?: WaterIncident[];
+    selectedWaterIncident?: WaterIncident | null;
 }
 
 export default function MapWrapper({
@@ -51,7 +54,9 @@ export default function MapWrapper({
     gpsJammingPoints = [],
     showGPSJamming = false,
     checkedElectricityOutages = [],
-    selectedElectricityOutage = null
+    selectedElectricityOutage = null,
+    checkedWaterIncidents = [],
+    selectedWaterIncident = null
 }: MapWrapperProps) {
     return <Map
         selectedWarning={selectedWarning}
@@ -70,5 +75,7 @@ export default function MapWrapper({
         showGPSJamming={showGPSJamming}
         checkedElectricityOutages={checkedElectricityOutages}
         selectedElectricityOutage={selectedElectricityOutage}
+        checkedWaterIncidents={checkedWaterIncidents}
+        selectedWaterIncident={selectedWaterIncident}
     />;
 }

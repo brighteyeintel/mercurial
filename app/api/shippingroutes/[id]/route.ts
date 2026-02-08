@@ -60,6 +60,8 @@ export async function PUT(request: Request, { params }: Params) {
     const name = String((body as any).name ?? '').trim();
     const goods_type = String((body as any).goods_type ?? '').trim();
     const stages = Array.isArray((body as any).stages) ? (body as any).stages : [];
+    const monitors = Array.isArray((body as any).monitors) ? (body as any).monitors.map(String) : [];
+    const feeds = Array.isArray((body as any).feeds) ? (body as any).feeds.map(String) : [];
 
     if (!name) {
         return Response.json({ error: 'name is required' }, { status: 400 });
@@ -86,7 +88,7 @@ export async function PUT(request: Request, { params }: Params) {
                 { user_email: null },
             ],
         },
-        { $set: { name, goods_type, stages } },
+        { $set: { name, goods_type, stages, monitors, feeds } },
         { new: true }
     ).lean();
 

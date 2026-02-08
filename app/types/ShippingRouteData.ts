@@ -34,18 +34,24 @@ export class ShippingRouteData {
   name: string;
   stages: Stage[];
   goods_type: string;
+  monitors: string[];
+  feeds: string[];
 
-  constructor(name: string, goods_type: string, stages: Stage[] = []) {
+  constructor(name: string, goods_type: string, stages: Stage[] = [], monitors: string[] = [], feeds: string[] = []) {
     this.name = name;
     this.goods_type = goods_type;
     this.stages = stages;
+    this.monitors = monitors;
+    this.feeds = feeds;
   }
 
-  toJSON(): { name: string; goods_type: string; stages: Stage[] } {
+  toJSON(): { name: string; goods_type: string; stages: Stage[]; monitors: string[]; feeds: string[] } {
     return {
       name: this.name,
       goods_type: this.goods_type,
       stages: this.stages,
+      monitors: this.monitors,
+      feeds: this.feeds,
     };
   }
 
@@ -56,6 +62,8 @@ export class ShippingRouteData {
 
     const name = String(json.name || '');
     const goods_type = String(json.goods_type || '');
+    const monitors = Array.isArray(json.monitors) ? json.monitors.map(String) : [];
+    const feeds = Array.isArray(json.feeds) ? json.feeds.map(String) : [];
     const stages = Array.isArray(json.stages)
       ? json.stages.map((stage: any) => {
         if (stage.transport) {
@@ -82,6 +90,6 @@ export class ShippingRouteData {
       })
       : [];
 
-    return new ShippingRouteData(name, goods_type, stages);
+    return new ShippingRouteData(name, goods_type, stages, monitors, feeds);
   }
 }

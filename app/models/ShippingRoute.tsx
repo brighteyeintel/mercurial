@@ -9,6 +9,8 @@ export interface ShippingRouteRecord {
   name: string;
   goods_type: string;
   stages: Stage[];
+  monitors: string[];
+  feeds: string[];
 }
 
 const TransportSchema = new mongoose.Schema(
@@ -61,6 +63,8 @@ const RouteSchema = new mongoose.Schema(
     name: { type: String, required: true },
     goods_type: { type: String, required: true },
     stages: { type: [StageSchema], default: [] },
+    monitors: { type: [String], default: [] },
+    feeds: { type: [String], default: [] },
   },
   { timestamps: true }
 );
@@ -75,16 +79,21 @@ export async function createShippingRoute(data: {
   name: string;
   goods_type: string;
   stages?: ShippingRouteRecord['stages'];
+  monitors?: string[];
+  feeds?: string[];
 }): Promise<ShippingRouteRecord> {
   const route = new ShippingRouteModel({
     user_email: data.user_email,
     name: data.name,
     goods_type: data.goods_type,
     stages: data.stages ?? [],
+    monitors: data.monitors ?? [],
+    feeds: data.feeds ?? [],
   });
   await route.save();
   return route;
 }
+
 
 export async function getShippingRoutes(): Promise<ShippingRouteRecord[] | null> {
   const routes = await ShippingRouteModel.find({});

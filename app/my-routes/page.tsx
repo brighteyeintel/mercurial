@@ -13,6 +13,7 @@ import { PowerOutage, ElectricityData } from '../types/PowerOutage';
 import ShippingRoutePanel from './ShippingRoutePanel';
 import { useRoutePreview } from "../hooks/useRoutePreview"; // Import Route Preview Hook
 import { RailDisruption } from '../types/RailDisruption';
+import { WaterIncident, WaterData } from '../types/WaterIncident';
 
 const MapWrapper = dynamic(() => import('../components/MapWrapper'), {
     ssr: false,
@@ -85,6 +86,15 @@ export default function RouteEditorPage() {
     const [selectedElectricityProvider, setSelectedElectricityProvider] = useState<'all' | 'ukpn' | 'nationalgrid' | 'northernpowergrid'>('all');
     const [selectedOutage, setSelectedOutage] = useState<PowerOutage | null>(null);
     const [checkedOutageIds, setCheckedOutageIds] = useState<Set<string>>(new Set());
+
+
+    // Water Utilities State
+    const [waterIncidents, setWaterIncidents] = useState<WaterIncident[]>([]);
+    const [isWaterSidebarOpen, setIsWaterSidebarOpen] = useState(false);
+    const [isWaterLoading, setIsWaterLoading] = useState(true);
+    const [selectedWaterIncident, setSelectedWaterIncident] = useState<WaterIncident | null>(null);
+    const [checkedWaterIncidentRefs, setCheckedWaterIncidentRefs] = useState<Set<string>>(new Set());
+
     const [isRoutePanelOpen, setIsRoutePanelOpen] = useState(true);
 
     // Route Preview Hook
@@ -224,6 +234,18 @@ export default function RouteEditorPage() {
             })
             .catch(err => console.error("Failed to fetch electricity data", err))
             .finally(() => setIsElectricityLoading(false));
+
+        // Fetch Water Incident Data
+        setIsWaterLoading(true);
+        fetch('/api/utilities/water')
+            .then(res => res.json())
+            .then((data: WaterData) => {
+                if (data.incidents) {
+                    setWaterIncidents(data.incidents);
+                }
+            })
+            .catch(err => console.error("Failed to fetch water data", err))
+            .finally(() => setIsWaterLoading(false));
     }, []);
 
     // Filter Logic
@@ -422,6 +444,17 @@ export default function RouteEditorPage() {
         }
     };
 
+    const toggleAllWaterIncidents = () => {
+        const allRefs = waterIncidents.map(i => i.incidentRef);
+        const allChecked = allRefs.length > 0 && allRefs.every(ref => checkedWaterIncidentRefs.has(ref));
+
+        if (allChecked) {
+            setCheckedWaterIncidentRefs(new Set());
+        } else {
+            setCheckedWaterIncidentRefs(new Set(allRefs));
+        }
+    };
+
     return (
         <div className="flex h-screen flex-col bg-black text-white selection:bg-zinc-800 selection:text-zinc-100 overflow-hidden">
             <Navbar />
@@ -446,6 +479,8 @@ export default function RouteEditorPage() {
                         showGPSJamming={showGPSJamming}
                         checkedElectricityOutages={electricityOutages.filter(o => checkedOutageIds.has(o.id))}
                         selectedElectricityOutage={selectedOutage}
+                        checkedWaterIncidents={waterIncidents.filter(i => checkedWaterIncidentRefs.has(i.incidentRef))}
+                        selectedWaterIncident={selectedWaterIncident}
                     />
 
                     {/* Overlay Title for Map Context */}
@@ -458,7 +493,7 @@ export default function RouteEditorPage() {
 
 
                     {/* Feature Toggles */}
-                    <div className={`absolute top-4 z-1000 flex flex-col gap-2 transition-all duration-300 ${(isWarningsSidebarOpen || isNotamsSidebarOpen || isWeatherSidebarOpen || isRailSidebarOpen || isTradeSidebarOpen || isRoadsSidebarOpen || isGPSSidebarOpen || isElectricitySidebarOpen)
+                    <div className={`absolute top-4 z-1000 flex flex-col gap-2 transition-all duration-300 ${(isWarningsSidebarOpen || isNotamsSidebarOpen || isWeatherSidebarOpen || isRailSidebarOpen || isTradeSidebarOpen || isRoadsSidebarOpen || isGPSSidebarOpen || isElectricitySidebarOpen || isWaterSidebarOpen)
                         ? 'left-[416px]'
                         : 'left-4'
                         }`}>
@@ -470,7 +505,9 @@ export default function RouteEditorPage() {
                                 setIsTradeSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
                                 setIsGPSSidebarOpen(false);
+                                setIsGPSSidebarOpen(false);
                                 setIsElectricitySidebarOpen(false);
+                                setIsWaterSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isWarningsSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Navigation Warnings"
@@ -486,6 +523,8 @@ export default function RouteEditorPage() {
                                 setIsTradeSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
                                 setIsGPSSidebarOpen(false);
+                                setIsElectricitySidebarOpen(false);
+                                setIsWaterSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isNotamsSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle Aviation NOTAMs"
@@ -566,6 +605,8 @@ export default function RouteEditorPage() {
                                 setIsRailSidebarOpen(false);
                                 setIsTradeSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
+                                setIsElectricitySidebarOpen(false);
+                                setIsWaterSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isGPSSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle GPS Jamming Layer"
@@ -583,11 +624,36 @@ export default function RouteEditorPage() {
                                 setIsTradeSidebarOpen(false);
                                 setIsRoadsSidebarOpen(false);
                                 setIsGPSSidebarOpen(false);
+                                setIsWaterSidebarOpen(false);
                             }}
                             className={`p-2 rounded-lg border shadow-xl transition-all ${isElectricitySidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
                             title="Toggle UK Electricity Outages"
                         >
                             {isElectricitySidebarOpen ? <ChevronLeft className="h-5 w-5 text-zinc-300" /> : <Zap className="h-5 w-5 text-yellow-500" />}
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setIsWaterSidebarOpen(!isWaterSidebarOpen);
+                                setIsElectricitySidebarOpen(false);
+                                setIsWarningsSidebarOpen(false);
+                                setIsNotamsSidebarOpen(false);
+                                setIsWeatherSidebarOpen(false);
+                                setIsRailSidebarOpen(false);
+                                setIsTradeSidebarOpen(false);
+                                setIsRoadsSidebarOpen(false);
+                                setIsGPSSidebarOpen(false);
+                            }}
+                            className={`p-2 rounded-lg border shadow-xl transition-all ${isWaterSidebarOpen ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900/90 border-zinc-700 hover:bg-zinc-800'}`}
+                            title="Toggle Water Incidents"
+                        >
+                            {isWaterSidebarOpen ? <ChevronLeft className="h-5 w-5 text-zinc-300" /> : (
+                                <div className="text-cyan-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                                    </svg>
+                                </div>
+                            )}
                         </button>
                     </div>
 
@@ -1263,6 +1329,88 @@ export default function RouteEditorPage() {
                                         <div className="text-[9px] text-zinc-500 uppercase">NPG</div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Water Incidents Sidebar Overlay */}
+                    {isWaterSidebarOpen && (
+                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col pt-16 shadow-2xl transition-transform">
+                            <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
+                                <h3 className="text-sm font-bold text-cyan-500 uppercase tracking-wider flex items-center gap-2">
+                                    <div className="relative">
+                                        <div className="absolute inset-0 bg-cyan-500 rounded-full blur-[4px] opacity-40"></div>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
+                                            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                                        </svg>
+                                    </div>
+                                    Yorkshire Water Incidents
+                                </h3>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-900 rounded-full border border-zinc-800">
+                                        {waterIncidents.length} active
+                                    </span>
+                                    <button
+                                        onClick={toggleAllWaterIncidents}
+                                        className="text-[10px] px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-cyan-400 rounded border border-zinc-700 transition-colors"
+                                    >
+                                        {waterIncidents.length > 0 && waterIncidents.every(i => checkedWaterIncidentRefs.has(i.incidentRef))
+                                            ? 'Deselect All'
+                                            : 'Select All'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
+                                {isWaterLoading ? (
+                                    <div className="flex flex-col items-center justify-center py-20 text-zinc-500 gap-3">
+                                        <div className="w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                                        <span className="text-sm">Fetching water data...</span>
+                                    </div>
+                                ) : waterIncidents.length === 0 ? (
+                                    <div className="text-center py-10 text-zinc-500 text-sm">
+                                        No active water incidents reported.
+                                    </div>
+                                ) : (
+                                    waterIncidents.map((incident) => (
+                                        <div
+                                            key={incident.incidentRef}
+                                            className={`p-3 rounded border transition-colors cursor-pointer hover:bg-zinc-900 
+                                                ${selectedWaterIncident?.incidentRef === incident.incidentRef ? 'bg-zinc-800 border-cyan-500/50' : 'bg-zinc-950/50 border-zinc-800'}`}
+                                            onClick={() => setSelectedWaterIncident(incident)}
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checkedWaterIncidentRefs.has(incident.incidentRef)}
+                                                    onChange={(e) => {
+                                                        e.stopPropagation();
+                                                        const newSet = new Set(checkedWaterIncidentRefs);
+                                                        if (newSet.has(incident.incidentRef)) newSet.delete(incident.incidentRef);
+                                                        else newSet.add(incident.incidentRef);
+                                                        setCheckedWaterIncidentRefs(newSet);
+                                                    }}
+                                                    className="mt-1 w-4 h-4 rounded bg-zinc-800 border-zinc-600 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0 focus:ring-offset-transparent cursor-pointer"
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                                        <span className="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider bg-cyan-900/40 text-cyan-400 border border-cyan-800/50">
+                                                            {incident.category || 'Incident'}
+                                                        </span>
+                                                        <span className="text-[10px] text-zinc-400">
+                                                            {new Date(incident.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </div>
+                                                    <h4 className="text-sm font-medium text-zinc-200 line-clamp-2 mb-1">{incident.location}</h4>
+                                                    <div className="flex justify-between items-end text-xs text-zinc-500">
+                                                        <span>{incident.postCode}</span>
+                                                        <span className={`${incident.status.includes('Help') ? 'text-blue-400' : 'text-zinc-500'}`}>{incident.status.slice(0, 20)}{incident.status.length > 20 ? '...' : ''}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
                     )}

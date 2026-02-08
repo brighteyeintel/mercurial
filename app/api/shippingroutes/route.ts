@@ -40,6 +40,8 @@ export async function POST(request: Request) {
     const name = String((body as any).name ?? '').trim();
     const goods_type = String((body as any).goods_type ?? '').trim();
     const stages = Array.isArray((body as any).stages) ? (body as any).stages : [];
+    const monitors = Array.isArray((body as any).monitors) ? (body as any).monitors.map(String) : [];
+    const feeds = Array.isArray((body as any).feeds) ? (body as any).feeds.map(String) : [];
 
     if (!name) {
         return Response.json({ error: 'name is required' }, { status: 400 });
@@ -57,6 +59,6 @@ export async function POST(request: Request) {
         }
     }
 
-    const created = await ShippingRouteModel.create({ user_email: email, name, goods_type, stages });
+    const created = await ShippingRouteModel.create({ user_email: email, name, goods_type, stages, monitors, feeds });
     return Response.json({ route: created.toObject() }, { status: 201 });
 }

@@ -14,6 +14,7 @@ import { RailDisruption } from "../types/RailDisruption";
 import { TransportMode } from "../types/ShippingRouteData";
 import { GPSJammingPoint } from "../types/GPSJamming";
 import { PowerOutage } from "../types/PowerOutage";
+import { WaterIncident } from "../types/WaterIncident";
 
 // Component to handle map interactions like flying to coordinates
 const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert, selectedRailDisruption, selectedCountryBounds, routePreviews }: {
@@ -132,6 +133,8 @@ export interface MapComponentProps {
     showGPSJamming?: boolean;
     checkedElectricityOutages?: PowerOutage[];
     selectedElectricityOutage?: PowerOutage | null;
+    checkedWaterIncidents?: WaterIncident[];
+    selectedWaterIncident?: WaterIncident | null;
 }
 
 const MapComponent = ({
@@ -150,7 +153,9 @@ const MapComponent = ({
     gpsJammingPoints = [],
     showGPSJamming = false,
     checkedElectricityOutages = [],
-    selectedElectricityOutage = null
+    selectedElectricityOutage = null,
+    checkedWaterIncidents = [],
+    selectedWaterIncident = null
 }: MapComponentProps) => {
     const [events, setEvents] = useState<TrafficEvent[]>([]);
     const [countryData, setCountryData] = useState<any>(null); // GeoJSON FeatureCollection
@@ -379,6 +384,33 @@ const MapComponent = ({
                 font-size: 8px;
                 font-weight: bold;
             ">⚡</div></div>`,
+            iconSize: [14, 14],
+            iconAnchor: [7, 7],
+            popupAnchor: [0, -10],
+        });
+    };
+
+    const createWaterIcon = () => {
+        const color = '#06b6d4'; // cyan-500
+        return L.divIcon({
+            className: "water-marker",
+            html: `<div style="
+                background-color: ${color};
+                width: 14px;
+                height: 14px;
+                border-radius: 50% 50% 50% 0;
+                transform: rotate(-45deg);
+                border: 2px solid white;
+                box-shadow: 0 0 8px ${color}80;
+            "><div style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) rotate(45deg);
+                color: white;
+                font-size: 8px;
+                font-weight: bold;
+            ">💧</div></div>`,
             iconSize: [14, 14],
             iconAnchor: [7, 7],
             popupAnchor: [0, -10],
@@ -739,6 +771,59 @@ const MapComponent = ({
                                                 Est. restore: {new Date(outage.estimatedRestoration).toLocaleString()}
                                             </div>
                                         )}
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        ))
+                })()}
+
+                {/* Water Incident Markers */}
+                {(() => {
+                    // Deduplicate
+                    const seen = new Set<string>();
+                    const allIncidents = [...checkedWaterIncidents, ...(selectedWaterIncident && !checkedWaterIncidents.find(i => i.incidentRef === selectedWaterIncident.incidentRef) ? [selectedWaterIncident] : [])];
+                    return allIncidents
+                        .filter((i: WaterIncident) => {
+                            if (seen.has(i.incidentRef) || i.latitude === 0 || i.longitude === 0) return false;
+                            seen.add(i.incidentRef);
+                            return true;
+                        })
+                        .map((incident: WaterIncident, idx: number) => (
+                            <Marker
+                                key={`water-${incident.incidentRef}-${idx}`}
+                                position={[incident.latitude, incident.longitude]}
+                                icon={createWaterIcon()}
+                            >
+                                <Popup>
+                                    <div className="min-w-[200px]">
+                                        <div className="font-bold text-cyan-500 flex items-center gap-1">
+                                            💧 Yorkshire Water
+                                        </div>
+                                        <div className="text-sm mt-1 font-medium">{incident.category}</div>
+                                        <div className="text-sm text-zinc-600 mb-2">{incident.areasAffected}</div>
+
+                                        <div className="text-xs bg-zinc-100 p-2 rounded text-zinc-700 whitespace-pre-wrap max-h-[100px] overflow-y-auto">
+                                            {incident.description}
+                                        </div>
+
+                                        <div className="flex gap-2 mt-2">
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-700">
+                                                {incident.servicesAffected}
+                                            </span>
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-600">
+                                                {incident.status}
+                                            </span>
+                                        </div>
+
+                                        {incident.moreInfoUrl && (
+                                            <a href={incident.moreInfoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline mt-2 block">
+                                                More Info
+                                            </a>
+                                        )}
+
+                                        <div className="text-[10px] text-zinc-400 mt-2 text-right">
+                                            Updated: {new Date(incident.lastUpdated).toLocaleString()}
+                                        </div>
                                     </div>
                                 </Popup>
                             </Marker>

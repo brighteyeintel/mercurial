@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, type ChangeEvent, type MouseEvent } from 
 import { useSession } from "next-auth/react"
 import { ShippingRouteData, Stage, TransportMode, Transport, Holding, Location } from "../types/ShippingRouteData";
 import { Port, WorldPortsData } from "../types/Port";
-import { Plus, Trash2, Save, ArrowLeft, Box, Clock, Globe, Check, X, AlertTriangle, Edit } from "lucide-react";
+import { Plus, Trash2, Save, ArrowLeft, Box, Clock, Globe, Check, X, AlertTriangle, Edit, Rss, Newspaper, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 // Helper to get initial empty location
@@ -70,6 +70,10 @@ export default function ShippingRoutePanel({
     const [routeName, setRouteName] = useState("");
     const [goodsType, setGoodsType] = useState("");
     const [stages, setStages] = useState<Stage[]>([]);
+    const [monitors, setMonitors] = useState<string[]>([]);
+    const [feeds, setFeeds] = useState<string[]>([]);
+    const [monitorResults, setMonitorResults] = useState<any[]>([]);
+    const [isMonitoringLoading, setIsMonitoringLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [savedRouteId, setSavedRouteId] = useState<string | null>(null);
@@ -247,6 +251,8 @@ export default function ShippingRoutePanel({
             setRouteName(parsed.name);
             setGoodsType(parsed.goods_type);
             setStages(parsed.stages);
+            setMonitors(parsed.monitors || []);
+            setFeeds(parsed.feeds || []);
             setView(targetView);
         } catch (e) {
             setSaveError(e instanceof Error ? e.message : 'Failed to load route');
@@ -419,7 +425,7 @@ export default function ShippingRoutePanel({
         setSavedRouteId(null);
 
         try {
-            const routeData = new ShippingRouteData(routeName, goodsType, stages);
+            const routeData = new ShippingRouteData(routeName, goodsType, stages, monitors, feeds);
             const isEdit = !!selectedRouteId;
             const url = isEdit ? `/api/shippingroutes/${encodeURIComponent(selectedRouteId!)}` : '/api/shippingroutes';
             const method = isEdit ? 'PUT' : 'POST';
@@ -447,6 +453,53 @@ export default function ShippingRoutePanel({
             setIsSaving(false);
         }
     }
+
+    const addMonitor = (monitor: string) => {
+        if (monitor && !monitors.includes(monitor)) {
+            setMonitors([...monitors, monitor]);
+        }
+    };
+
+    const removeMonitor = (monitor: string) => {
+        setMonitors(monitors.filter(m => m !== monitor));
+    };
+
+    const addFeed = (feed: string) => {
+        if (feed && !feeds.includes(feed)) {
+            setFeeds([...feeds, feed]);
+        }
+    };
+
+    const removeFeed = (feed: string) => {
+        setFeeds(feeds.filter(f => f !== feed));
+    };
+
+    // Fetch monitoring results when in overview and monitors exist
+    useEffect(() => {
+        if (view === 'overview' && monitors.length > 0) {
+            setIsMonitoringLoading(true);
+            fetch('/api/monitoring', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ monitors, feeds })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.matches) {
+                        setMonitorResults(data.matches);
+                    } else {
+                        setMonitorResults([]);
+                    }
+                })
+                .catch(err => {
+                    console.error("Failed to fetch monitoring results", err);
+                    setMonitorResults([]);
+                })
+                .finally(() => setIsMonitoringLoading(false));
+        } else {
+            setMonitorResults([]);
+        }
+    }, [view, monitors, feeds]);
 
     return (
         <div className="h-full w-full bg-black flex flex-col">
@@ -758,6 +811,58 @@ export default function ShippingRoutePanel({
                                     )}
                                 </div>
                             </div>
+
+                            {/* Monitoring Results */}
+                            {monitors.length > 0 && (
+                                <div className="space-y-3 pt-4 border-t border-zinc-800/50">
+                                    <h2 className="text-sm font-bold text-zinc-300 flex items-center gap-2 uppercase tracking-wide px-1">
+                                        <Newspaper className="h-4 w-4 text-zinc-500" />
+                                        Monitoring Results ({monitorResults.length})
+                                    </h2>
+
+                                    {isMonitoringLoading ? (
+                                        <div className="text-center py-8 text-zinc-500 text-sm animate-pulse">
+                                            Scanning feeds...
+                                        </div>
+                                    ) : monitorResults.length === 0 ? (
+                                        <div className="text-center py-8 border border-dashed border-zinc-800 rounded-lg text-zinc-500 text-sm">
+                                            No recent matches found for your keywords.
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {monitorResults.map((item, i) => (
+                                                <div key={i} className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-3 hover:bg-zinc-900/50 transition-colors">
+                                                    <div className="mb-1 flex items-start justify-between gap-2">
+                                                        <a
+                                                            href={item.link}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-sm font-medium text-cyan-400 hover:text-cyan-300 line-clamp-2 leading-snug hover:underline"
+                                                        >
+                                                            {item.title}
+                                                        </a>
+                                                        <ExternalLink className="h-3 w-3 text-zinc-600 shrink-0 mt-1" />
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 mb-2 text-[10px] text-zinc-500">
+                                                        <span className="bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800 max-w-[150px] truncate">
+                                                            {item.source}
+                                                        </span>
+                                                        <span>•</span>
+                                                        <span>{item.isoDate ? new Date(item.isoDate).toLocaleDateString() : 'Unknown date'}</span>
+                                                    </div>
+
+                                                    {item.contentSnippet && (
+                                                        <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed">
+                                                            {item.contentSnippet}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <>
@@ -800,6 +905,86 @@ export default function ShippingRoutePanel({
                                         value={goodsType}
                                         onChange={(e: ChangeEvent<HTMLInputElement>) => setGoodsType(e.target.value)}
                                     />
+                                </div>
+                            </div>
+
+                            {/* Monitoring Configuration */}
+                            <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
+                                <h2 className="text-sm font-bold text-zinc-300 mb-3 flex items-center gap-2 uppercase tracking-wide">
+                                    <Rss className="h-4 w-4 text-zinc-500" />
+                                    Monitoring
+                                </h2>
+
+                                {/* Monitors (Keywords) */}
+                                <div className="mb-4 space-y-2">
+                                    <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Keywords to Monitor</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            className="flex-1 h-8 rounded border border-zinc-800 bg-zinc-950 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-zinc-700 hover:border-zinc-700 transition"
+                                            placeholder="Add keyword (e.g. 'Strait of Hormuz')"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    addMonitor(e.currentTarget.value);
+                                                    e.currentTarget.value = '';
+                                                }
+                                            }}
+                                        />
+                                        <button
+                                            className="px-3 h-8 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs font-bold uppercase tracking-wider transition-colors"
+                                            onClick={(e) => {
+                                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                                addMonitor(input.value);
+                                                input.value = '';
+                                            }}
+                                        >
+                                            Add
+                                        </button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {monitors.map(m => (
+                                            <span key={m} className="inline-flex items-center gap-1 bg-cyan-950/30 border border-cyan-900/50 text-cyan-400 px-2 py-1 rounded text-xs">
+                                                {m}
+                                                <button onClick={() => removeMonitor(m)} className="hover:text-cyan-200"><X className="h-3 w-3" /></button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Feeds */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Custom RSS Feeds</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            className="flex-1 h-8 rounded border border-zinc-800 bg-zinc-950 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-zinc-700 hover:border-zinc-700 transition"
+                                            placeholder="Add RSS URL"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    addFeed(e.currentTarget.value);
+                                                    e.currentTarget.value = '';
+                                                }
+                                            }}
+                                        />
+                                        <button
+                                            className="px-3 h-8 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs font-bold uppercase tracking-wider transition-colors"
+                                            onClick={(e) => {
+                                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                                addFeed(input.value);
+                                                input.value = '';
+                                            }}
+                                        >
+                                            Add
+                                        </button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {feeds.map(f => (
+                                            <span key={f} className="inline-flex items-center gap-1 bg-zinc-800 border border-zinc-700 text-zinc-300 px-2 py-1 rounded text-xs max-w-full truncate">
+                                                <span className="truncate max-w-[200px]">{f}</span>
+                                                <button onClick={() => removeFeed(f)} className="hover:text-white flex-shrink-0"><X className="h-3 w-3" /></button>
+                                            </span>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
 
