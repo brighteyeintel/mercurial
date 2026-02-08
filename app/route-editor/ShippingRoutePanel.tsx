@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react"
 import { ShippingRouteData, Stage, TransportMode, Transport, Holding, Location } from "../types/ShippingRouteData";
 import { Port, WorldPortsData } from "../types/Port";
-import { Plus, Trash2, Save, ArrowLeft, Box, Clock, Globe, Check, X } from "lucide-react";
+import { Plus, Trash2, Save, ArrowLeft, Box, Clock, Globe, Check, X, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
 // Helper to get initial empty location
@@ -30,6 +30,19 @@ const getEmptyHolding = (): Holding => ({
     duration: "",
     additional: ""
 });
+
+// Helper to calculate distance between two points in miles (Haversine formula)
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 3958.8; // Radius of the Earth in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+};
 
 interface ShippingRoutePanelProps {
     fetchAllRoutePreviews?: (stages: Stage[]) => Promise<void>;
@@ -618,259 +631,289 @@ export default function ShippingRoutePanel({
                                     </span>
                                 </div>
 
-                                {stages.map((stage, index) => (
-                                    <div key={index} className="relative rounded-lg border border-zinc-800 bg-zinc-900/30 p-4 transition-all hover:border-zinc-700 hover:bg-zinc-900/50 group">
-                                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                onClick={() => removeStage(index)}
-                                                className="p-1.5 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
-                                                title="Remove Stage"
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </button>
-                                        </div>
+                                {stages.map((stage, index) => {
+                                    const nextStage = stages[index + 1];
+                                    let distanceWarning = null;
 
-                                        <div className="mb-3 pr-8">
-                                            <div className="flex gap-1.5 bg-zinc-950 rounded p-1 inline-flex border border-zinc-900">
-                                                <button
-                                                    onClick={() => updateStageType(index, 'transport')}
-                                                    className={`px-2 py-0.5 text-xs font-bold uppercase tracking-wider rounded transition-all ${stage.transport ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-600 hover:text-zinc-400'}`}
-                                                >
-                                                    Transport
-                                                </button>
-                                                <button
-                                                    onClick={() => updateStageType(index, 'holding')}
-                                                    className={`px-2 py-0.5 text-xs font-bold uppercase tracking-wider rounded transition-all ${stage.holding ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-600 hover:text-zinc-400'}`}
-                                                >
-                                                    Holding
-                                                </button>
-                                            </div>
-                                        </div>
+                                    if (stage.transport && nextStage?.transport) {
+                                        const dist = calculateDistance(
+                                            stage.transport.destination.latitude,
+                                            stage.transport.destination.longitude,
+                                            nextStage.transport.source.latitude,
+                                            nextStage.transport.source.longitude
+                                        );
 
-                                        {stage.transport && (
-                                            <div className="grid gap-3">
-                                                <div className="space-y-1">
-                                                    <label className="text-xs font-medium text-zinc-500">Mode</label>
-                                                    <div className="relative">
-                                                        <select
-                                                            className="flex h-9 w-full appearance-none rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
-                                                            value={stage.transport.mode}
-                                                            onChange={(e) => updateTransportField(index, 'mode', e.target.value)}
+                                        // Only warn if both stages have coordinates (not 0,0 which is the default)
+                                        const hasCurrentDestCoords = stage.transport.destination.latitude !== 0 || stage.transport.destination.longitude !== 0;
+                                        const hasNextSourceCoords = nextStage.transport.source.latitude !== 0 || nextStage.transport.source.longitude !== 0;
+
+                                        if (hasCurrentDestCoords && hasNextSourceCoords && dist > 10) {
+                                            distanceWarning = (
+                                                <div className="flex items-center gap-2 p-2 mt-[-8px] mb-2 mx-2 rounded border border-amber-900/40 bg-amber-950/20 text-[10px] text-amber-200 uppercase font-bold tracking-wider animate-in fade-in slide-in-from-top-1 z-0 relative border-t-0 rounded-t-none">
+                                                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                                                    <span>Warning: Gap of {dist.toFixed(1)} miles to next stage</span>
+                                                </div>
+                                            );
+                                        }
+                                    }
+
+                                    return (
+                                        <div key={index} className="space-y-3">
+                                            <div className="relative rounded-lg border border-zinc-800 bg-zinc-900/30 p-4 transition-all hover:border-zinc-700 hover:bg-zinc-900/50 group z-10">
+                                                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={() => removeStage(index)}
+                                                        className="p-1.5 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                                                        title="Remove Stage"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+
+                                                <div className="mb-3 pr-8">
+                                                    <div className="flex gap-1.5 bg-zinc-950 rounded p-1 inline-flex border border-zinc-900">
+                                                        <button
+                                                            onClick={() => updateStageType(index, 'transport')}
+                                                            className={`px-2 py-0.5 text-xs font-bold uppercase tracking-wider rounded transition-all ${stage.transport ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-600 hover:text-zinc-400'}`}
                                                         >
-                                                            {Object.values(TransportMode).map((mode) => (
-                                                                <option key={mode} value={mode}>{mode.toUpperCase()}</option>
-                                                            ))}
-                                                        </select>
-                                                        <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-zinc-500">
-                                                            <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
-                                                        </div>
+                                                            Transport
+                                                        </button>
+                                                        <button
+                                                            onClick={() => updateStageType(index, 'holding')}
+                                                            className={`px-2 py-0.5 text-xs font-bold uppercase tracking-wider rounded transition-all ${stage.holding ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-600 hover:text-zinc-400'}`}
+                                                        >
+                                                            Holding
+                                                        </button>
                                                     </div>
                                                 </div>
 
-                                                <div className="grid gap-3 p-3 border border-zinc-800 rounded bg-zinc-900/20">
-                                                    <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Origin</label>
-                                                    {stage.transport.mode === TransportMode.Flight && (
+                                                {stage.transport && (
+                                                    <div className="grid gap-3">
                                                         <div className="space-y-1">
-                                                            <label className="text-[10px] font-medium text-zinc-500 uppercase">Airport Search</label>
-                                                            <input
-                                                                list="airports-datalist"
-                                                                className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                                                                placeholder="Search Airport (ICAO)..."
-                                                                onChange={(e) => onAirportSelect(index, 'source', e.target.value)}
-                                                                value={stage.transport.source.code || ''}
-                                                            />
-                                                            {stage.transport.source.name && (
-                                                                <div className="text-[10px] text-emerald-400 font-medium px-1 truncate">
-                                                                    {stage.transport.source.name}
+                                                            <label className="text-xs font-medium text-zinc-500">Mode</label>
+                                                            <div className="relative">
+                                                                <select
+                                                                    className="flex h-9 w-full appearance-none rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
+                                                                    value={stage.transport.mode}
+                                                                    onChange={(e) => updateTransportField(index, 'mode', e.target.value)}
+                                                                >
+                                                                    {Object.values(TransportMode).map((mode) => (
+                                                                        <option key={mode} value={mode}>{mode.toUpperCase()}</option>
+                                                                    ))}
+                                                                </select>
+                                                                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-zinc-500">
+                                                                    <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="grid gap-3 p-3 border border-zinc-800 rounded bg-zinc-900/20">
+                                                            <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Origin</label>
+                                                            {stage.transport.mode === TransportMode.Flight && (
+                                                                <div className="space-y-1">
+                                                                    <label className="text-[10px] font-medium text-zinc-500 uppercase">Airport Search</label>
+                                                                    <input
+                                                                        list="airports-datalist"
+                                                                        className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                                                                        placeholder="Search Airport (ICAO)..."
+                                                                        onChange={(e) => onAirportSelect(index, 'source', e.target.value)}
+                                                                        value={stage.transport.source.code || ''}
+                                                                    />
+                                                                    {stage.transport.source.name && (
+                                                                        <div className="text-[10px] text-emerald-400 font-medium px-1 truncate">
+                                                                            {stage.transport.source.name}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            {stage.transport.mode !== TransportMode.Flight && (
+                                                                <div className="grid grid-cols-2 gap-2">
+                                                                    <div className="col-span-2 flex gap-2">
+                                                                        <input
+                                                                            type="text"
+                                                                            className="flex h-8 flex-1 rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                                                                            placeholder="Location Name"
+                                                                            list={stage.transport.mode === TransportMode.Sea ? "ports-datalist" : undefined}
+                                                                            value={stage.transport.source.name}
+                                                                            onChange={(e) => {
+                                                                                if (stage.transport!.mode === TransportMode.Sea) {
+                                                                                    onPortSelect(index, 'source', e.target.value);
+                                                                                } else {
+                                                                                    updateTransportLocation(index, 'source', 'name', e.target.value);
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        {stage.transport.mode === TransportMode.Road && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => resolveCoordinates(index, 'source')}
+                                                                                className="px-2 py-1 text-[10px] font-bold bg-zinc-800 text-zinc-300 rounded hover:bg-zinc-700 transition-colors uppercase"
+                                                                                disabled={isSaving || !stage.transport.source.name}
+                                                                            >
+                                                                                Resolve
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                    <input
+                                                                        type="number"
+                                                                        className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                        placeholder="Lat"
+                                                                        value={stage.transport.source.latitude || ''}
+                                                                        onChange={(e) => updateTransportLocation(index, 'source', 'latitude', parseFloat(e.target.value) || 0)}
+                                                                    />
+                                                                    <input
+                                                                        type="number"
+                                                                        className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                        placeholder="Long"
+                                                                        value={stage.transport.source.longitude || ''}
+                                                                        onChange={(e) => updateTransportLocation(index, 'source', 'longitude', parseFloat(e.target.value) || 0)}
+                                                                    />
+                                                                    <div className="col-span-2">
+                                                                        <input
+                                                                            type="text"
+                                                                            className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                                                                            placeholder={stage.transport.mode === TransportMode.Sea ? "Port Number" : "Location Code (Optional)"}
+                                                                            value={stage.transport.source.code || ''}
+                                                                            onChange={(e) => updateTransportLocation(index, 'source', 'code', e.target.value)}
+                                                                        />
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    )}
-                                                    {stage.transport.mode !== TransportMode.Flight && (
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            <div className="col-span-2 flex gap-2">
-                                                                <input
-                                                                    type="text"
-                                                                    className="flex h-8 flex-1 rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                                                                    placeholder="Location Name"
-                                                                    list={stage.transport.mode === TransportMode.Sea ? "ports-datalist" : undefined}
-                                                                    value={stage.transport.source.name}
-                                                                    onChange={(e) => {
-                                                                        if (stage.transport!.mode === TransportMode.Sea) {
-                                                                            onPortSelect(index, 'source', e.target.value);
-                                                                        } else {
-                                                                            updateTransportLocation(index, 'source', 'name', e.target.value);
-                                                                        }
-                                                                    }}
-                                                                />
-                                                                {stage.transport.mode === TransportMode.Road && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => resolveCoordinates(index, 'source')}
-                                                                        className="px-2 py-1 text-[10px] font-bold bg-zinc-800 text-zinc-300 rounded hover:bg-zinc-700 transition-colors uppercase"
-                                                                        disabled={isSaving || !stage.transport.source.name}
-                                                                    >
-                                                                        Resolve
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                            <input
-                                                                type="number"
-                                                                className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                                placeholder="Lat"
-                                                                value={stage.transport.source.latitude || ''}
-                                                                onChange={(e) => updateTransportLocation(index, 'source', 'latitude', parseFloat(e.target.value) || 0)}
-                                                            />
-                                                            <input
-                                                                type="number"
-                                                                className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                                placeholder="Long"
-                                                                value={stage.transport.source.longitude || ''}
-                                                                onChange={(e) => updateTransportLocation(index, 'source', 'longitude', parseFloat(e.target.value) || 0)}
-                                                            />
-                                                            <div className="col-span-2">
-                                                                <input
-                                                                    type="text"
-                                                                    className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                                                                    placeholder={stage.transport.mode === TransportMode.Sea ? "Port Number" : "Location Code (Optional)"}
-                                                                    value={stage.transport.source.code || ''}
-                                                                    onChange={(e) => updateTransportLocation(index, 'source', 'code', e.target.value)}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
 
-                                                <div className="grid gap-3 p-3 border border-zinc-800 rounded bg-zinc-900/20">
-                                                    <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Destination</label>
-                                                    {stage.transport.mode === TransportMode.Flight && (
-                                                        <div className="space-y-1">
-                                                            <label className="text-[10px] font-medium text-zinc-500 uppercase">Airport Search</label>
-                                                            <input
-                                                                list="airports-datalist"
-                                                                className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                                                                placeholder="Search Airport (ICAO)..."
-                                                                onChange={(e) => onAirportSelect(index, 'destination', e.target.value)}
-                                                                value={stage.transport.destination.code || ''}
-                                                            />
-                                                            {stage.transport.destination.name && (
-                                                                <div className="text-[10px] text-emerald-400 font-medium px-1 truncate">
-                                                                    {stage.transport.destination.name}
+                                                        <div className="grid gap-3 p-3 border border-zinc-800 rounded bg-zinc-900/20">
+                                                            <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Destination</label>
+                                                            {stage.transport.mode === TransportMode.Flight && (
+                                                                <div className="space-y-1">
+                                                                    <label className="text-[10px] font-medium text-zinc-500 uppercase">Airport Search</label>
+                                                                    <input
+                                                                        list="airports-datalist"
+                                                                        className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                                                                        placeholder="Search Airport (ICAO)..."
+                                                                        onChange={(e) => onAirportSelect(index, 'destination', e.target.value)}
+                                                                        value={stage.transport.destination.code || ''}
+                                                                    />
+                                                                    {stage.transport.destination.name && (
+                                                                        <div className="text-[10px] text-emerald-400 font-medium px-1 truncate">
+                                                                            {stage.transport.destination.name}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            {stage.transport.mode !== TransportMode.Flight && (
+                                                                <div className="grid grid-cols-2 gap-2">
+                                                                    <div className="col-span-2 flex gap-2">
+                                                                        <input
+                                                                            type="text"
+                                                                            className="flex h-8 flex-1 rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                                                                            placeholder="Location Name"
+                                                                            list={stage.transport.mode === TransportMode.Sea ? "ports-datalist" : undefined}
+                                                                            value={stage.transport.destination.name}
+                                                                            onChange={(e) => {
+                                                                                if (stage.transport!.mode === TransportMode.Sea) {
+                                                                                    onPortSelect(index, 'destination', e.target.value);
+                                                                                } else {
+                                                                                    updateTransportLocation(index, 'destination', 'name', e.target.value);
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        {stage.transport.mode === TransportMode.Road && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => resolveCoordinates(index, 'destination')}
+                                                                                className="px-2 py-1 text-[10px] font-bold bg-zinc-800 text-zinc-300 rounded hover:bg-zinc-700 transition-colors uppercase"
+                                                                                disabled={isSaving || !stage.transport.destination.name}
+                                                                            >
+                                                                                Resolve
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                    <input
+                                                                        type="number"
+                                                                        className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                        placeholder="Lat"
+                                                                        value={stage.transport.destination.latitude || ''}
+                                                                        onChange={(e) => updateTransportLocation(index, 'destination', 'latitude', parseFloat(e.target.value) || 0)}
+                                                                    />
+                                                                    <input
+                                                                        type="number"
+                                                                        className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                        placeholder="Long"
+                                                                        value={stage.transport.destination.longitude || ''}
+                                                                        onChange={(e) => updateTransportLocation(index, 'destination', 'longitude', parseFloat(e.target.value) || 0)}
+                                                                    />
+                                                                    <div className="col-span-2">
+                                                                        <input
+                                                                            type="text"
+                                                                            className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                                                                            placeholder={stage.transport.mode === TransportMode.Sea ? "Port Number" : "Location Code (Optional)"}
+                                                                            value={stage.transport.destination.code || ''}
+                                                                            onChange={(e) => updateTransportLocation(index, 'destination', 'code', e.target.value)}
+                                                                        />
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    )}
-                                                    {stage.transport.mode !== TransportMode.Flight && (
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            <div className="col-span-2 flex gap-2">
-                                                                <input
-                                                                    type="text"
-                                                                    className="flex h-8 flex-1 rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                                                                    placeholder="Location Name"
-                                                                    list={stage.transport.mode === TransportMode.Sea ? "ports-datalist" : undefined}
-                                                                    value={stage.transport.destination.name}
-                                                                    onChange={(e) => {
-                                                                        if (stage.transport!.mode === TransportMode.Sea) {
-                                                                            onPortSelect(index, 'destination', e.target.value);
-                                                                        } else {
-                                                                            updateTransportLocation(index, 'destination', 'name', e.target.value);
-                                                                        }
-                                                                    }}
-                                                                />
-                                                                {stage.transport.mode === TransportMode.Road && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => resolveCoordinates(index, 'destination')}
-                                                                        className="px-2 py-1 text-[10px] font-bold bg-zinc-800 text-zinc-300 rounded hover:bg-zinc-700 transition-colors uppercase"
-                                                                        disabled={isSaving || !stage.transport.destination.name}
-                                                                    >
-                                                                        Resolve
-                                                                    </button>
-                                                                )}
-                                                            </div>
+
+                                                        <div className="space-y-1">
                                                             <input
-                                                                type="number"
-                                                                className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                                placeholder="Lat"
-                                                                value={stage.transport.destination.latitude || ''}
-                                                                onChange={(e) => updateTransportLocation(index, 'destination', 'latitude', parseFloat(e.target.value) || 0)}
+                                                                type="text"
+                                                                className="flex h-9 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
+                                                                placeholder="Courier (Optional)"
+                                                                value={stage.transport.courier || ''}
+                                                                onChange={(e) => updateTransportField(index, 'courier', e.target.value)}
                                                             />
-                                                            <input
-                                                                type="number"
-                                                                className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-all appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                                placeholder="Long"
-                                                                value={stage.transport.destination.longitude || ''}
-                                                                onChange={(e) => updateTransportLocation(index, 'destination', 'longitude', parseFloat(e.target.value) || 0)}
-                                                            />
-                                                            <div className="col-span-2">
-                                                                <input
-                                                                    type="text"
-                                                                    className="flex h-8 w-full rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-xs placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                                                                    placeholder={stage.transport.mode === TransportMode.Sea ? "Port Number" : "Location Code (Optional)"}
-                                                                    value={stage.transport.destination.code || ''}
-                                                                    onChange={(e) => updateTransportLocation(index, 'destination', 'code', e.target.value)}
-                                                                />
-                                                            </div>
                                                         </div>
-                                                    )}
-                                                </div>
+                                                        <div className="space-y-1">
+                                                            <input
+                                                                type="text"
+                                                                className="flex h-9 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
+                                                                placeholder="Notes / Additional Info"
+                                                                value={stage.transport.additional || ''}
+                                                                onChange={(e) => updateTransportField(index, 'additional', e.target.value)}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
 
-                                                <div className="space-y-1">
-                                                    <input
-                                                        type="text"
-                                                        className="flex h-9 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
-                                                        placeholder="Courier (Optional)"
-                                                        value={stage.transport.courier || ''}
-                                                        onChange={(e) => updateTransportField(index, 'courier', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <input
-                                                        type="text"
-                                                        className="flex h-9 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
-                                                        placeholder="Notes / Additional Info"
-                                                        value={stage.transport.additional || ''}
-                                                        onChange={(e) => updateTransportField(index, 'additional', e.target.value)}
-                                                    />
-                                                </div>
+                                                {stage.holding && (
+                                                    <div className="grid gap-3">
+                                                        <div className="space-y-1">
+                                                            <label className="text-xs font-medium text-zinc-500">Location</label>
+                                                            <input
+                                                                type="text"
+                                                                className="flex h-9 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
+                                                                placeholder="Warehouse / Port"
+                                                                value={stage.holding.location}
+                                                                onChange={(e) => updateHoldingField(index, 'location', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-xs font-medium text-zinc-500">Duration</label>
+                                                            <input
+                                                                type="text"
+                                                                className="flex h-9 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
+                                                                placeholder="e.g. 2h 30m"
+                                                                value={stage.holding.duration}
+                                                                onChange={(e) => updateHoldingField(index, 'duration', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <input
+                                                                type="text"
+                                                                className="flex h-9 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
+                                                                placeholder="Notes / Additional Info"
+                                                                value={stage.holding.additional || ''}
+                                                                onChange={(e) => updateHoldingField(index, 'additional', e.target.value)}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-
-                                        {stage.holding && (
-                                            <div className="grid gap-3">
-                                                <div className="space-y-1">
-                                                    <label className="text-xs font-medium text-zinc-500">Location</label>
-                                                    <input
-                                                        type="text"
-                                                        className="flex h-9 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
-                                                        placeholder="Warehouse / Port"
-                                                        value={stage.holding.location}
-                                                        onChange={(e) => updateHoldingField(index, 'location', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-xs font-medium text-zinc-500">Duration</label>
-                                                    <input
-                                                        type="text"
-                                                        className="flex h-9 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
-                                                        placeholder="e.g. 2h 30m"
-                                                        value={stage.holding.duration}
-                                                        onChange={(e) => updateHoldingField(index, 'duration', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <input
-                                                        type="text"
-                                                        className="flex h-9 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
-                                                        placeholder="Notes / Additional Info"
-                                                        value={stage.holding.additional || ''}
-                                                        onChange={(e) => updateHoldingField(index, 'additional', e.target.value)}
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
+                                            {distanceWarning}
+                                        </div>
+                                    );
+                                })}
 
                                 <button
                                     onClick={addStage}
