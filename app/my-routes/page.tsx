@@ -415,7 +415,7 @@ export default function RouteEditorPage() {
                     />
 
                     {/* Overlay Title for Map Context */}
-                    <div className="absolute top-4 left-14 z-[500] bg-zinc-900/90 backdrop-blur-md border border-zinc-700 rounded-lg px-4 py-2 shadow-xl pointer-events-none">
+                    <div className="absolute top-4 left-15.5 z-[500] bg-zinc-900/90 backdrop-blur-md border border-zinc-700 rounded-lg px-4 py-2 shadow-xl pointer-events-none">
                         <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider flex items-center gap-2">
                             <Globe className="h-4 w-4 text-emerald-500" />
                             Global Logistics View
@@ -541,7 +541,7 @@ export default function RouteEditorPage() {
 
                     {/* Navigation Warnings Sidebar Overlay */}
                     {isWarningsSidebarOpen && (
-                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col pt-16 shadow-2xl transition-transform">
+                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col shadow-2xl transition-transform">
                             <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
                                 <h3 className="text-sm font-bold text-amber-500 uppercase tracking-wider flex items-center gap-2">
                                     <AlertTriangle className="h-4 w-4" />
@@ -641,7 +641,7 @@ export default function RouteEditorPage() {
 
                     {/* Rail Disruptions Sidebar Overlay */}
                     {isRailSidebarOpen && (
-                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col pt-16 shadow-2xl transition-transform">
+                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col shadow-2xl transition-transform">
                             <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
                                 <h3 className="text-sm font-bold text-green-500 uppercase tracking-wider flex items-center gap-2">
                                     <Train className="h-4 w-4" />
@@ -711,7 +711,7 @@ export default function RouteEditorPage() {
 
                     {/* Aviation NOTAMs Sidebar Overlay */}
                     {isNotamsSidebarOpen && (
-                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col pt-16 shadow-2xl transition-transform">
+                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col shadow-2xl transition-transform">
                             <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
                                 <h3 className="text-sm font-bold text-blue-500 uppercase tracking-wider flex items-center gap-2">
                                     <Plane className="h-4 w-4" />
@@ -770,7 +770,7 @@ export default function RouteEditorPage() {
 
                     {/* Weather Alerts Sidebar Overlay */}
                     {isWeatherSidebarOpen && (
-                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col pt-16 shadow-2xl transition-transform">
+                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col shadow-2xl transition-transform">
                             <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
                                 <h3 className="text-sm font-bold text-purple-500 uppercase tracking-wider flex items-center gap-2">
                                     <CloudLightning className="h-4 w-4" />
@@ -826,7 +826,7 @@ export default function RouteEditorPage() {
 
                     {/* Trade Barriers Sidebar Overlay */}
                     {isTradeSidebarOpen && (
-                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col pt-16 shadow-2xl transition-transform">
+                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col shadow-2xl transition-transform">
                             <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
                                 <h3 className="text-sm font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-2">
                                     <Building2 className="h-4 w-4" />
@@ -936,7 +936,7 @@ export default function RouteEditorPage() {
 
                     {/* Roads Sidebar Overlay */}
                     {isRoadsSidebarOpen && (
-                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col pt-16 shadow-2xl transition-transform">
+                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col shadow-2xl transition-transform">
                             <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
                                 <h3 className="text-sm font-bold text-orange-500 uppercase tracking-wider flex items-center gap-2">
                                     <AlertTriangle className="h-4 w-4" />
@@ -960,7 +960,7 @@ export default function RouteEditorPage() {
 
                     {/* GPS Jamming Sidebar Overlay */}
                     {isGPSSidebarOpen && (
-                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col pt-16 shadow-2xl transition-transform">
+                        <div className="absolute top-0 left-0 bottom-0 w-[400px] bg-zinc-950/95 backdrop-blur-sm border-r border-zinc-800 z-[900] flex flex-col shadow-2xl transition-transform">
                             <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
                                 <h3 className="text-sm font-bold text-red-500 uppercase tracking-wider flex items-center gap-2">
                                     <Radio className="h-4 w-4" />
