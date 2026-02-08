@@ -11,17 +11,7 @@ import { TradeBarrier } from '../types/TradeBarrier';
 import { GPSJammingPoint, GPSJammingData } from '../types/GPSJamming';
 import ShippingRoutePanel from './ShippingRoutePanel';
 import { useRoutePreview } from "../hooks/useRoutePreview"; // Import Route Preview Hook
-
-interface RailDisruption {
-    id: string;
-    title: string;
-    status?: string;
-    description?: string;
-    operator?: string;
-    affected?: string[];
-    updatedAt?: string;
-    link?: string;
-}
+import { RailDisruption } from '../types/RailDisruption';
 
 const MapWrapper = dynamic(() => import('../components/MapWrapper'), {
     ssr: false,
@@ -688,7 +678,7 @@ export default function RouteEditorPage() {
                                             </div>
                                         )}
 
-                                        {(d.stationName || d.crsCode || (d.lat != null && d.lon != null)) && (
+                                        {(d.stationName && d.crsCode && (d.lat != null && d.lon != null)) && (
                                             <div className="mb-2 space-y-1">
                                                 {d.stationName && (
                                                     <div className="text-[10px] text-zinc-400 font-mono">
