@@ -16,6 +16,7 @@ import { RailDisruption } from '../types/RailDisruption';
 import { GPSJammingPoint } from '../types/GPSJamming';
 import { PowerOutage } from '../types/PowerOutage';
 import { WaterIncident } from '../types/WaterIncident';
+import { TradeBarrier } from '../types/TradeBarrier';
 
 interface MapWrapperProps {
     selectedWarning?: NavigationWarning | null;
@@ -27,6 +28,7 @@ interface MapWrapperProps {
     checkedNotams?: Notam[];
     checkedWeatherAlerts?: WeatherAlert[];
     checkedTradeCountries?: string[];
+    tradeBarriers?: TradeBarrier[];
     visibleCategories?: Record<string, boolean>;
     checkedRailDisruptions?: RailDisruption[];
     selectedRailDisruption?: RailDisruption | null;
@@ -50,6 +52,7 @@ export default function MapWrapper({
     checkedNotams = [],
     checkedWeatherAlerts = [],
     checkedTradeCountries = [],
+    tradeBarriers = [],
     visibleCategories = { "Road Works": false, "Accident": false, "Congestion": false, "Maritime": false, "Other": false },
     checkedRailDisruptions = [],
     selectedRailDisruption = null,
@@ -72,6 +75,7 @@ export default function MapWrapper({
         checkedNotams={checkedNotams}
         checkedWeatherAlerts={checkedWeatherAlerts}
         checkedTradeCountries={checkedTradeCountries}
+        tradeBarriers={tradeBarriers}
         visibleCategories={visibleCategories}
         checkedRailDisruptions={checkedRailDisruptions}
         selectedRailDisruption={selectedRailDisruption}

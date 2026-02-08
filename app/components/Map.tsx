@@ -15,6 +15,7 @@ import { TransportMode } from "../types/ShippingRouteData";
 import { GPSJammingPoint } from "../types/GPSJamming";
 import { PowerOutage } from "../types/PowerOutage";
 import { WaterIncident } from "../types/WaterIncident";
+import { TradeBarrier } from "../types/TradeBarrier";
 
 // Component to handle map interactions like flying to coordinates
 const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert, selectedRailDisruption, selectedCountryBounds, routePreviews, leftPadding = 50, rightPadding = 50 }: {
@@ -132,6 +133,7 @@ export interface MapComponentProps {
     checkedWeatherAlerts?: WeatherAlert[];
     checkedRailDisruptions?: RailDisruption[];
     checkedTradeCountries?: string[];
+    tradeBarriers?: TradeBarrier[];
     visibleCategories?: Record<string, boolean>;
     gpsJammingPoints?: GPSJammingPoint[];
     showGPSJamming?: boolean;
@@ -155,6 +157,7 @@ const MapComponent = ({
     checkedWeatherAlerts = [],
     checkedRailDisruptions = [],
     checkedTradeCountries = [],
+    tradeBarriers = [],
     visibleCategories = { "Road Works": false, "Accident": false, "Congestion": false, "Maritime": false, "Other": false },
     gpsJammingPoints = [],
     showGPSJamming = false,
@@ -206,6 +209,19 @@ const MapComponent = ({
             return exact || countryData.features.find((f: any) => f.properties.name.toLowerCase().includes(search));
         }).filter(Boolean);
     }, [countryData, checkedTradeCountries]);
+
+    // Create a lookup of barriers grouped by country name
+    const barriersByCountry = useMemo(() => {
+        const map = new Map<string, TradeBarrier[]>();
+        tradeBarriers.forEach(barrier => {
+            const country = barrier.country_or_territory.name;
+            if (!map.has(country)) {
+                map.set(country, []);
+            }
+            map.get(country)!.push(barrier);
+        });
+        return map;
+    }, [tradeBarriers]);
 
     const selectedCountryBounds = useMemo(() => {
         if (!selectedCountryFeature) return null;
@@ -545,20 +561,46 @@ const MapComponent = ({
                         }}
                     />
                 )}
-                {checkedCountryFeatures.map((feature: any, idx) => (
-                    <GeoJSON
-                        key={`checked-country-${idx}`}
-                        data={feature}
-                        style={{
-                            color: '#fbbf24', // Amber-400
-                            weight: 2,
-                            opacity: 0.7,
-                            dashArray: '5, 5',
-                            fillColor: '#fbbf24',
-                            fillOpacity: 0.1
-                        }}
-                    />
-                ))}
+                {checkedCountryFeatures.map((feature: any, idx) => {
+                    const countryName = feature?.properties?.name || checkedTradeCountries[idx];
+                    const barriers = barriersByCountry.get(countryName) || [];
+
+                    return (
+                        <GeoJSON
+                            key={`checked-country-${idx}-${countryName}`}
+                            data={feature}
+                            style={{
+                                color: '#fbbf24', // Amber-400
+                                weight: 2,
+                                opacity: 0.7,
+                                dashArray: '5, 5',
+                                fillColor: '#fbbf24',
+                                fillOpacity: 0.1
+                            }}
+                            onEachFeature={(feat, layer) => {
+                                if (barriers.length > 0) {
+                                    const popupContent = `
+                                        <div style="max-width: 300px; max-height: 400px; overflow-y: auto;">
+                                            <h3 style="font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #fbbf24;">${countryName}</h3>
+                                            <div style="font-size: 11px; color: #888; margin-bottom: 12px;">${barriers.length} trade barrier${barriers.length > 1 ? 's' : ''}</div>
+                                            ${barriers.map(b => `
+                                                <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #333;">
+                                                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                                                        <span style="font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; ${b.is_resolved ? 'background: #064e3b; color: #34d399;' : 'background: #78350f; color: #fbbf24;'}">${b.is_resolved ? 'RESOLVED' : 'ACTIVE'}</span>
+                                                    </div>
+                                                    <div style="font-weight: 600; font-size: 12px; color: #e4e4e7; margin-bottom: 4px;">${b.title}</div>
+                                                    <div style="font-size: 10px; color: #71717a; margin-bottom: 4px;">${new Date(b.status_date).toLocaleDateString()}</div>
+                                                    ${b.sectors.length > 0 ? `<div style="font-size: 10px; color: #a1a1aa;">${b.sectors.map(s => s.name).join(', ')}</div>` : ''}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    `;
+                                    layer.bindPopup(popupContent, { maxWidth: 320, className: 'trade-barrier-popup' });
+                                }
+                            }}
+                        />
+                    );
+                })}
 
                 {/* Render Selected & Checked Weather Alerts */}
                 {allRenderedWeatherAlerts.map((alert, idx) => (

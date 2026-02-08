@@ -498,6 +498,7 @@ export default function RouteEditorPage() {
                         checkedNotams={notams.filter(n => checkedNotamIds.has(n.id || n.notamCode))}
                         checkedWeatherAlerts={weatherAlerts.filter(a => checkedWeatherIds.has(a.id || a.event))}
                         checkedTradeCountries={tradeBarriers.filter(b => checkedTradeBarrierIds.has(b.id)).map(b => b.country_or_territory.name)}
+                        tradeBarriers={tradeBarriers.filter(b => checkedTradeBarrierIds.has(b.id))}
                         checkedRailDisruptions={railDisruptions.filter(d => checkedRailDisruptionIds.has(d.id))}
                         selectedRailDisruption={selectedRailDisruption}
                         visibleCategories={visibleCategories}
