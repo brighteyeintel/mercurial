@@ -12,7 +12,7 @@ export default function DashboardPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
 
-    const [stats, setStats] = useState({ savedRoutesCount: 0, risksNearRoutes: 0, fixedTen: 0 });
+    const [stats, setStats] = useState({ savedRoutesCount: 0, risksNearRoutes: 0, routesAtRisk: 0 });
     const [isLoadingStats, setIsLoadingStats] = useState(false);
     const hasFetched = useRef(false);
 
@@ -38,7 +38,7 @@ export default function DashboardPage() {
                 setStats({
                     savedRoutesCount: data.savedRoutesCount ?? 0,
                     risksNearRoutes: data.risksNearRoutes ?? 0,
-                    fixedTen: data.fixedTen ?? 0
+                    routesAtRisk: data.routesAtRisk ?? 0
                 });
             } catch (error) {
                 console.error('Error fetching stats:', error);
@@ -116,9 +116,9 @@ export default function DashboardPage() {
                         <p className="mt-4 text-zinc-400 text-xl">Risk Events</p>
                     </div>
                     <div className="flex flex-col items-center text-center">
-                        <div className="w-32 h-32 bg-green-400/50 mask-[url('/circle-tick-svgrepo-com.svg')] mask-contain mask-no-repeat mask-center mb-4"></div>
-                        <span className="text-white text-8xl" data-count-to={stats.fixedTen}>0</span>
-                        <p className="mt-4 text-zinc-400 text-xl">Shipments Optimized</p>
+                        <div className="w-32 h-32 bg-red-600/50 mask-[url('/triangle-exclamation-svgrepo-com.svg')] mask-contain mask-no-repeat mask-center mb-4"></div>
+                        <span className="text-white text-8xl" data-count-to={stats.routesAtRisk}>0</span>
+                        <p className="mt-4 text-zinc-400 text-xl">Routes at Risk</p>
                     </div>
                 </div>
 

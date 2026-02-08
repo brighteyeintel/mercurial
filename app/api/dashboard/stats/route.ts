@@ -2,7 +2,7 @@ import { dbConnect } from '../../../lib/mongo';
 import { ShippingRouteModel } from '../../../models/ShippingRoute';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/authOptions';
-import { countRisksNearUserRoutes } from '../../../lib/risk-analysis';
+import { countRisksNearUserRoutes, countRoutesAtRisk } from '../../../lib/risk-analysis';
 
 export const runtime = 'nodejs';
 
@@ -21,15 +21,15 @@ export async function GET() {
         const savedRoutesCount = await ShippingRouteModel.countDocuments({ user_email: email });
 
         // 2. Number of risks within 20km of any user route
-        const risksNearRoutes = await countRisksNearUserRoutes(email, 20);
+        const risksNearRoutes = await countRisksNearUserRoutes(email);
 
-        // 3. fixed integer 10
-        const fixedTen = 10;
+        // 3. Number of routes with at least one risk
+        const routesAtRisk = await countRoutesAtRisk(email);
 
         return Response.json({
             savedRoutesCount,
             risksNearRoutes,
-            fixedTen
+            routesAtRisk
         });
     } catch (error) {
         console.error('Error in dashboard stats API:', error);

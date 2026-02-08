@@ -722,3 +722,37 @@ export async function countRisksNearUserRoutes(
     return 0;
   }
 }
+/**
+ * Counts the number of unique routes with at least one risk.
+ * 
+ * @param userEmail - Email of the user whose routes to check
+ * @param thresholdKm - Distance threshold in kilometers (default: 20)
+ * @returns Number of unique routes with at least one risk
+ */
+export async function countRoutesAtRisk(
+  userEmail: string,
+  thresholdKm: number = 20
+): Promise<number> {
+  const cacheKey = `routes-at-risk-${userEmail}-${thresholdKm}`;
+  const now = Date.now();
+  
+  if (cache[cacheKey] && now - cache[cacheKey].timestamp < CACHE_TTL_MS) {
+    console.log(`[Risk Analysis] Returning cached result for routes at risk: ${cache[cacheKey].value}`);
+    return cache[cacheKey].value;
+  }
+
+  try {
+    const routeIdToRisks = await getRisksNearUserRoutesMap(userEmail, thresholdKm);
+    const routesWithRisksCount = Object.keys(routeIdToRisks).length;
+
+    console.log(`[Risk Analysis] Total routes with risks: ${routesWithRisksCount}`);
+    
+    // Update cache
+    cache[cacheKey] = { value: routesWithRisksCount, timestamp: Date.now() };
+    
+    return routesWithRisksCount;
+  } catch (error) {
+    console.error('Error counting routes at risk:', error);
+    return 0;
+  }
+}
