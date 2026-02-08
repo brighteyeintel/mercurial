@@ -24,7 +24,7 @@ export default function SignupPage() {
                 <div className="mt-8 space-y-6">
                     <div className="flex flex-col gap-4">
                         <button
-                            onClick={() => signIn('github', { callbackUrl: '/mercurial' })}
+                            onClick={() => signIn('github', { callbackUrl: '/my-routes' })}
                             className="flex w-full hover:cursor-pointer items-center justify-center gap-3 rounded-md bg-white px-3 py-3 text-sm font-semibold text-zinc-950 shadow-sm hover:bg-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-colors"
                         >
                             <Github className="h-5 w-5" />
