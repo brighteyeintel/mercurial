@@ -22,7 +22,14 @@ export async function GET(_request: Request, { params }: Params) {
         return Response.json({ error: 'id is required' }, { status: 400 });
     }
 
-    const route = await ShippingRouteModel.findOne({ _id: id, user_email: email }).lean();
+    const route = await ShippingRouteModel.findOne({
+        _id: id,
+        $or: [
+            { user_email: email },
+            { user_email: { $exists: false } },
+            { user_email: null },
+        ],
+    }).lean();
     if (!route) {
         return Response.json({ error: 'Not found' }, { status: 404 });
     }
@@ -71,7 +78,14 @@ export async function PUT(request: Request, { params }: Params) {
     }
 
     const updated = await ShippingRouteModel.findOneAndUpdate(
-        { _id: id, user_email: email },
+        {
+            _id: id,
+            $or: [
+                { user_email: email },
+                { user_email: { $exists: false } },
+                { user_email: null },
+            ],
+        },
         { $set: { name, goods_type, stages } },
         { new: true }
     ).lean();
@@ -98,7 +112,14 @@ export async function DELETE(_request: Request, { params }: Params) {
         return Response.json({ error: 'id is required' }, { status: 400 });
     }
 
-    const deleted = await ShippingRouteModel.findOneAndDelete({ _id: id, user_email: email }).lean();
+    const deleted = await ShippingRouteModel.findOneAndDelete({
+        _id: id,
+        $or: [
+            { user_email: email },
+            { user_email: { $exists: false } },
+            { user_email: null },
+        ],
+    }).lean();
     if (!deleted) {
         return Response.json({ error: 'Not found' }, { status: 404 });
     }

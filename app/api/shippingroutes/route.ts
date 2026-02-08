@@ -13,7 +13,13 @@ export async function GET() {
     }
 
     await dbConnect();
-    const routes = await ShippingRouteModel.find({ user_email: email }).lean();
+    const routes = await ShippingRouteModel.find({
+        $or: [
+            { user_email: email },
+            { user_email: { $exists: false } },
+            { user_email: null },
+        ],
+    }).lean();
     return Response.json({ routes });
 }
 

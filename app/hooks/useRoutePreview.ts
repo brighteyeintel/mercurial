@@ -75,9 +75,34 @@ async function fetchSeaRoute(origin: string, destination: string): Promise<[numb
     return null;
 }
 
-async function fetchRailRoute(origin: string, destination: string): Promise<[number, number][] | null> {
-    // TODO: Integrate with rail routing API when available
-    console.log(`[STUB] Rail route from ${origin} to ${destination} - not yet implemented`);
+async function fetchRailRoute(origin: string, destination: string): Promise<RoutePreviewData | null> {
+    try {
+        const response = await fetch("/api/rail/navigation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ origin, destination }),
+        });
+
+        if (!response.ok) {
+            console.error("Failed to fetch rail route");
+            return null;
+        }
+
+        const data = await response.json();
+
+        if (data.polyline) {
+            const decoded = decode(data.polyline) as [number, number][];
+            return {
+                stageIndex: -1, // Will be set by caller
+                coordinates: decoded,
+                duration: data.duration?.text,
+                durationInTraffic: data.durationInTraffic?.text,
+                mode: TransportMode.Rail,
+            };
+        }
+    } catch (error) {
+        console.error("Error fetching rail route:", error);
+    }
     return null;
 }
 
@@ -218,11 +243,7 @@ export function useRoutePreview() {
                         if (origin && destination) {
                             const railCoords = await fetchRailRoute(origin, destination);
                             if (railCoords) {
-                                result = {
-                                    stageIndex: i,
-                                    coordinates: railCoords,
-                                    mode: TransportMode.Rail,
-                                };
+                                result = railCoords;
                             }
                         }
                         break;
