@@ -13,11 +13,12 @@ import { WeatherAlert } from "../types/WeatherAlert";
 import { TransportMode } from "../types/ShippingRouteData";
 
 // Component to handle map interactions like flying to coordinates
-const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert, selectedCountryBounds }: {
+const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert, selectedCountryBounds, routePreviews }: {
     selectedWarning?: NavigationWarning | null,
     selectedNotam?: Notam | null,
     selectedWeatherAlert?: WeatherAlert | null,
-    selectedCountryBounds?: L.LatLngBounds | null
+    selectedCountryBounds?: L.LatLngBounds | null,
+    routePreviews?: RoutePreviewData[]
 }) => {
     const map = useMap();
 
@@ -59,6 +60,30 @@ const MapController = ({ selectedWarning, selectedNotam, selectedWeatherAlert, s
             });
         }
     }, [selectedCountryBounds, map]);
+
+    useEffect(() => {
+        if (routePreviews && routePreviews.length > 0) {
+            const bounds = L.latLngBounds([]);
+            let hasPoints = false;
+
+            routePreviews.forEach(preview => {
+                if (preview.coordinates && preview.coordinates.length > 0) {
+                    preview.coordinates.forEach(coord => {
+                        bounds.extend(coord);
+                        hasPoints = true;
+                    });
+                }
+            });
+
+            if (hasPoints && bounds.isValid()) {
+                map.flyToBounds(bounds, {
+                    padding: [50, 50],
+                    animate: true,
+                    duration: 1.5
+                });
+            }
+        }
+    }, [routePreviews, map]);
 
     return null;
 };
@@ -375,6 +400,7 @@ const MapComponent = ({
                     selectedNotam={selectedNotam}
                     selectedWeatherAlert={selectedWeatherAlert}
                     selectedCountryBounds={selectedCountryBounds}
+                    routePreviews={routePreviews}
                 />
 
                 {/* Render Selected & Checked Trade Barrier Countries */}
