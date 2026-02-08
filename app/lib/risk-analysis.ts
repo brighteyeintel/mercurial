@@ -18,7 +18,7 @@ export interface RiskPoint {
   id: string;
   lat: number;
   lon: number;
-  type: 'weather' | 'navigation' | 'notam' | 'traffic' | 'jamming';
+  type: 'weather' | 'navigation' | 'notam' | 'traffic' | 'jamming' | 'train-disruption';
   category?: string;
   severity?: number;
 }
@@ -283,7 +283,7 @@ async function fetchWeatherAlerts(): Promise<RiskPoint[]> {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const response = await fetch(`${baseUrl}/api/weather/alerts`, {
       next: { revalidate: 300 } // Cache for 5 minutes
-    });
+    } as any);
     
     if (!response.ok) {
       console.error('Failed to fetch weather alerts:', response.status);
@@ -313,7 +313,7 @@ async function fetchNavigationWarnings(): Promise<RiskPoint[]> {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const response = await fetch(`${baseUrl}/api/maritime/navigationwarnings`, {
       next: { revalidate: 300 } // Cache for 5 minutes
-    });
+    } as any);
     
     if (!response.ok) {
       console.error('Failed to fetch navigation warnings:', response.status);
@@ -353,7 +353,7 @@ async function fetchNotams(): Promise<RiskPoint[]> {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const response = await fetch(`${baseUrl}/api/aviation/notams`, {
       next: { revalidate: 300 } // Cache for 5 minutes
-    });
+    } as any);
     
     if (!response.ok) {
       console.error('Failed to fetch NOTAMs:', response.status);
@@ -383,7 +383,7 @@ async function fetchTrafficAlerts(): Promise<RiskPoint[]> {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const response = await fetch(`${baseUrl}/api/roads/traffic`, {
       next: { revalidate: 300 } // Cache for 5 minutes
-    });
+    } as any);
     
     if (!response.ok) {
       console.error('Failed to fetch traffic alerts:', response.status);
@@ -414,7 +414,7 @@ async function fetchJammingRisks(): Promise<RiskPoint[]> {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const response = await fetch(`${baseUrl}/api/aviation/gps`, {
       next: { revalidate: 300 } // Cache for 5 minutes
-    });
+    } as any);
     
     if (!response.ok) {
       console.error('Failed to fetch GPS jamming data:', response.status);
@@ -438,18 +438,52 @@ async function fetchJammingRisks(): Promise<RiskPoint[]> {
 }
 
 /**
+ * Fetches all train disruptions from the API
+ */
+async function fetchTrainDisruptionRisks(): Promise<RiskPoint[]> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/rail/disruption`, {
+      next: { revalidate: 300 } // Cache for 5 minutes
+    } as any);
+    
+    if (!response.ok) {
+      console.error('Failed to fetch train disruptions:', response.status);
+      return [];
+    }
+    
+    const data = await response.json();
+    const points: any[] = data.disruptions || [];
+
+    console.log(points);
+    
+    return points.map(p => ({
+      id: `train-disruption-${p.id}`,
+      lat: p.lat,
+      lon: p.lon,
+      type: 'train-disruption' as const,
+      severity: p.severity
+    }));
+  } catch (error) {
+    console.error('Error fetching train disruptions:', error);
+    return [];
+  }
+}
+
+/**
  * Fetches all active risks from all sources
  */
 export async function fetchAllRisks(): Promise<RiskPoint[]> {
-  const [weatherAlerts, navigationWarnings, notams, trafficAlerts, jammingRisks] = await Promise.all([
+  const [weatherAlerts, navigationWarnings, notams, trafficAlerts, jammingRisks, trainDisruptions] = await Promise.all([
     fetchWeatherAlerts(),
     fetchNavigationWarnings(),
     fetchNotams(),
     fetchTrafficAlerts(),
-    fetchJammingRisks()
+    fetchJammingRisks(),
+    fetchTrainDisruptionRisks()
   ]);
   
-  return [...weatherAlerts, ...navigationWarnings, ...notams, ...trafficAlerts, ...jammingRisks];
+  return [...weatherAlerts, ...navigationWarnings, ...notams, ...trafficAlerts, ...jammingRisks, ...trainDisruptions];
 }
 
 /**
@@ -525,17 +559,128 @@ function isRouteNearRisk(
     }
     
     if (distance <= thresholdKm) {
-      console.log(`[Risk Analysis] Risk ${riskPoint.id} within threshold at intermediate point (${distance.toFixed(1)}km)`);
+      // console.log(`[Risk Analysis] Risk ${riskPoint.id} within threshold at intermediate point (${distance.toFixed(1)}km)`);
       return true;
     }
   }
-  
+
   return false;
 }
 
 // Simple server-side cache for risk counts
 const cache: Record<string, { value: number; timestamp: number }> = {};
 const CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
+/**
+ * Builds a map of route ID -> nearby risks, applying mode-specific rules.
+ *
+ * @param userEmail - Email of the user whose routes to check
+ * @param thresholdKm - Base distance threshold in kilometers (default: 20)
+ * @returns Map of route ID -> list of nearby RiskPoints
+ */
+export async function getRisksNearUserRoutesMap(
+  userEmail: string,
+  thresholdKm: number = 20
+): Promise<Record<string, RiskPoint[]>> {
+  // Fetch user's routes
+  await dbConnect();
+  const routes = await ShippingRouteModel.find({
+    $or: [
+      { user_email: userEmail },
+      { user_email: { $exists: false } },
+      { user_email: null }
+    ]
+  }).lean();
+
+  console.log(`[Risk Analysis] Found ${routes.length} routes for user`);
+
+  if (routes.length === 0) {
+    return {};
+  }
+
+  // Fetch all active risks
+  const risks = await fetchAllRisks();
+
+  console.log(`[Risk Analysis] Found ${risks.length} total risks (weather: ${risks.filter(r => r.type === 'weather').length}, nav: ${risks.filter(r => r.type === 'navigation').length}, notams: ${risks.filter(r => r.type === 'notam').length})`);
+
+  if (risks.length === 0) {
+    return {};
+  }
+
+  const routeIdToRisks: Record<string, RiskPoint[]> = {};
+
+  for (const route of routes) {
+    const routeId = String((route as any)._id ?? (route as any).id ?? route.name);
+    const routeRiskIds = new Set<string>();
+
+    for (const stage of route.stages) {
+      if (!stage.transport) continue;
+
+      const mode = stage.transport.mode;
+
+      // Define mode-specific thresholds and allowed risk types
+      let stageThresholdKm = thresholdKm;
+      let allowedRiskTypes: RiskPoint['type'][] = [];
+
+      switch (mode) {
+        case TransportMode.Road:
+          stageThresholdKm = thresholdKm;
+          allowedRiskTypes = ['traffic', 'weather'];
+          break;
+        case TransportMode.Rail:
+          stageThresholdKm = thresholdKm;
+          allowedRiskTypes = ['weather', 'train-disruption'];
+          break;
+        case TransportMode.Sea:
+          stageThresholdKm = 100;
+          allowedRiskTypes = ['navigation'];
+          break;
+        case TransportMode.Flight:
+          stageThresholdKm = 100;
+          allowedRiskTypes = ['notam', 'jamming'];
+          break;
+      }
+
+      const stagePoints = await extractStagePoints(stage);
+      let jammingRiskFoundInStage = false;
+
+      for (const risk of risks) {
+        // Skip if already counted for this route or not relevant for this mode
+        if (routeRiskIds.has(risk.id)) continue;
+        if (!allowedRiskTypes.includes(risk.type)) continue;
+
+        // Special filtering for traffic risks on road stages
+        if (mode === TransportMode.Road && risk.type === 'traffic') {
+          const category = risk.category || '';
+          const isAllowedCategory = category === 'Accidents' || category === 'Congestion' || category === 'Other';
+          if (!isAllowedCategory) continue;
+        }
+
+        // Special rule for GPS jamming on flight stages
+        if (mode === TransportMode.Flight && risk.type === 'jamming') {
+          // Requirement: Only flag maximum one risk per flight stage, only if severity > 50%
+          if (jammingRiskFoundInStage) continue;
+          if ((risk.severity || 0) <= 50) continue;
+        }
+
+        const isNear = isRouteNearRisk(stagePoints, risk, stageThresholdKm);
+        if (isNear) {
+          routeRiskIds.add(risk.id);
+          if (!routeIdToRisks[routeId]) routeIdToRisks[routeId] = [];
+          routeIdToRisks[routeId].push(risk);
+
+          if (risk.type === 'jamming') {
+            jammingRiskFoundInStage = true;
+          }
+
+          console.log(`[Risk Analysis] ✓ Route ${routeId} Stage ${mode}: Risk "${risk.id}" (${risk.type}${risk.category ? ` - ${risk.category}` : ''}${risk.severity ? ` - ${risk.severity}%` : ''}) is within ${stageThresholdKm}km of route "${route.name}"`);
+        }
+      }
+    }
+  }
+
+  return routeIdToRisks;
+}
 
 /**
  * Counts the number of unique risks within a specified distance of any user route.
@@ -557,100 +702,21 @@ export async function countRisksNearUserRoutes(
   }
 
   try {
-    // Fetch user's routes
-    await dbConnect();
-    const routes = await ShippingRouteModel.find({ user_email: userEmail }).lean();
-    
-    console.log(`[Risk Analysis] Found ${routes.length} routes for user`);
-    
-    if (routes.length === 0) {
-      return 0;
-    }
-    
-    // Fetch all active risks
-    const risks = await fetchAllRisks();
-    
-    console.log(`[Risk Analysis] Found ${risks.length} total risks (weather: ${risks.filter(r => r.type === 'weather').length}, nav: ${risks.filter(r => r.type === 'navigation').length}, notams: ${risks.filter(r => r.type === 'notam').length})`);
-    
-    if (risks.length === 0) {
-      return 0;
-    }
-    
-    // Count unique risks within threshold distance of any route
-    const risksNearRoutes = new Set<string>();
-    
-    // Process each route stage separately to apply mode-specific rules
-    for (const route of routes) {
-      for (const stage of route.stages) {
-        if (!stage.transport) continue;
-        
-        const mode = stage.transport.mode;
-        
-        // Define mode-specific thresholds and allowed risk types
-        let stageThresholdKm = 20;
-        let allowedRiskTypes: RiskPoint['type'][] = [];
-        
-        switch (mode) {
-          case TransportMode.Road:
-            stageThresholdKm = 20;
-            allowedRiskTypes = ['traffic', 'weather'];
-            break;
-          case TransportMode.Rail:
-            stageThresholdKm = 20;
-            allowedRiskTypes = ['weather'];
-            break;
-          case TransportMode.Sea:
-            stageThresholdKm = 100;
-            allowedRiskTypes = ['navigation'];
-            break;
-          case TransportMode.Flight:
-            stageThresholdKm = 100;
-            allowedRiskTypes = ['notam', 'jamming'];
-            break;
-        }
-        
-        const stagePoints = await extractStagePoints(stage);
-        let jammingRiskFoundInStage = false;
-        
-        for (const risk of risks) {
-          // Skip if this risk is already counted or not relevant for this mode
-          if (risksNearRoutes.has(risk.id)) continue;
-          if (!allowedRiskTypes.includes(risk.type)) continue;
-          
-          // Special filtering for traffic risks on road stages
-          if (mode === TransportMode.Road && risk.type === 'traffic') {
-            const category = risk.category || '';
-            const isAllowedCategory = category === 'Accidents' || category === 'Congestion' || category === 'Other';
-            if (!isAllowedCategory) continue;
-          }
+    const routeIdToRisks = await getRisksNearUserRoutesMap(userEmail, thresholdKm);
 
-          // Special rule for GPS jamming on flight stages
-          if (mode === TransportMode.Flight && risk.type === 'jamming') {
-            // Requirement: Only flag maximum one risk per flight stage, only if severity > 50%
-            if (jammingRiskFoundInStage) continue;
-            if ((risk.severity || 0) <= 50) continue;
-          }
-          
-          const isNear = isRouteNearRisk(stagePoints, risk, stageThresholdKm);
-          if (isNear) {
-            risksNearRoutes.add(risk.id);
-            
-            if (risk.type === 'jamming') {
-              jammingRiskFoundInStage = true;
-            }
-
-            console.log(`[Risk Analysis] ✓ Stage ${mode}: Risk "${risk.id}" (${risk.type}${risk.category ? ` - ${risk.category}` : ''}${risk.severity ? ` - ${risk.severity}%` : ''}) is within ${stageThresholdKm}km of route "${route.name}"`);
-          }
-        }
+    const uniqueRiskIds = new Set<string>();
+    for (const risks of Object.values(routeIdToRisks)) {
+      for (const risk of risks) {
+        uniqueRiskIds.add(risk.id);
       }
     }
-    
-    console.log(`[Risk Analysis] Total risks within threshold: ${risksNearRoutes.size}`);
+
+    console.log(`[Risk Analysis] Total risks within threshold: ${uniqueRiskIds.size}`);
     
     // Update cache
-    cache[cacheKey] = { value: risksNearRoutes.size, timestamp: Date.now() };
+    cache[cacheKey] = { value: uniqueRiskIds.size, timestamp: Date.now() };
     
-    return risksNearRoutes.size;
+    return uniqueRiskIds.size;
   } catch (error) {
     console.error('Error counting risks near user routes:', error);
     return 0;

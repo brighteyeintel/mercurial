@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type ChangeEvent, type MouseEvent } from "react";
 import { useSession } from "next-auth/react"
 import { ShippingRouteData, Stage, TransportMode, Transport, Holding, Location } from "../types/ShippingRouteData";
 import { Port, WorldPortsData } from "../types/Port";
@@ -50,6 +50,15 @@ interface ShippingRoutePanelProps {
     isLoadingAll?: boolean;
 }
 
+interface RouteRiskPoint {
+    id: string;
+    lat: number;
+    lon: number;
+    type: 'weather' | 'navigation' | 'notam' | 'traffic' | 'jamming' | 'train-disruption';
+    category?: string;
+    severity?: number;
+}
+
 export default function ShippingRoutePanel({
     fetchAllRoutePreviews,
     clearAllPreviews,
@@ -68,6 +77,9 @@ export default function ShippingRoutePanel({
     const [isLoadingRoutes, setIsLoadingRoutes] = useState(false);
     const [airports, setAirports] = useState<any[]>([]);
     const [ports, setPorts] = useState<Port[]>([]);
+    const [routeRisks, setRouteRisks] = useState<RouteRiskPoint[]>([]);
+    const [isLoadingRisks, setIsLoadingRisks] = useState(false);
+    const [risksError, setRisksError] = useState<string | null>(null);
 
     const { data: session, status } = useSession()
 
@@ -157,6 +169,35 @@ export default function ShippingRoutePanel({
             fetchAllRoutePreviews(stages);
         }
     }, [view, stages, fetchAllRoutePreviews]);
+
+    useEffect(() => {
+        const fetchRisks = async (routeId: string) => {
+            setIsLoadingRisks(true);
+            setRisksError(null);
+            try {
+                const res = await fetch(`/api/shippingroutes/${encodeURIComponent(routeId)}/disruptions`, { method: 'GET' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error((data as any)?.error || 'Failed to load risks');
+                }
+                const nextRisks = Array.isArray((data as any)?.risks) ? (data as any).risks : [];
+                setRouteRisks(nextRisks);
+            } catch (e) {
+                setRouteRisks([]);
+                setRisksError(e instanceof Error ? e.message : 'Failed to load risks');
+            } finally {
+                setIsLoadingRisks(false);
+            }
+        };
+
+        if (view === 'overview' && selectedRouteId) {
+            fetchRisks(selectedRouteId);
+        } else {
+            setRouteRisks([]);
+            setRisksError(null);
+            setIsLoadingRisks(false);
+        }
+    }, [view, selectedRouteId]);
 
     useEffect(() => {
         fetch('/api/aviation/airports')
@@ -536,7 +577,7 @@ export default function ShippingRoutePanel({
                                                         <button
                                                             className="p-1.5 rounded hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 hover:cursor-pointer"
                                                             disabled={isSaving}
-                                                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                                                            onClick={(e: MouseEvent<HTMLButtonElement>) => {
                                                                 e.preventDefault();
                                                                 e.stopPropagation();
                                                                 deleteRoute(r._id);
@@ -548,7 +589,7 @@ export default function ShippingRoutePanel({
                                                         <button
                                                             className="p-1.5 rounded hover:bg-red-500/10 text-red-400 hover:text-red-300 hover:cursor-pointer"
                                                             disabled={isSaving}
-                                                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                                                            onClick={(e: MouseEvent<HTMLButtonElement>) => {
                                                                 e.preventDefault();
                                                                 e.stopPropagation();
                                                                 setRouteIdPendingDelete(null);
@@ -562,7 +603,7 @@ export default function ShippingRoutePanel({
                                                     <button
                                                         className="p-1.5 rounded hover:bg-zinc-800 text-zinc-500 hover:text-zinc-200 hover:cursor-pointer"
                                                         disabled={isSaving}
-                                                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                                                        onClick={(e: MouseEvent<HTMLButtonElement>) => {
                                                             e.preventDefault();
                                                             e.stopPropagation();
                                                             setRouteIdPendingDelete(r._id);
@@ -672,6 +713,51 @@ export default function ShippingRoutePanel({
                                     )}
                                 </div>
                             </div>
+
+                            {/* Risks Overview */}
+                            <div className="space-y-3">
+                                <h2 className="text-sm font-bold text-zinc-300 flex items-center gap-2 uppercase tracking-wide px-1">
+                                    <AlertTriangle className="h-4 w-4 text-zinc-500" />
+                                    Risks ({routeRisks.length})
+                                </h2>
+
+                                <div className="space-y-2 pt-2">
+                                    {isLoadingRisks ? (
+                                        <div className="text-sm text-zinc-500 px-1">Loading risks...</div>
+                                    ) : risksError ? (
+                                        <div className="rounded-lg border border-red-900/40 bg-red-950/20 px-4 py-3 text-sm text-red-200">{risksError}</div>
+                                    ) : routeRisks.length === 0 ? (
+                                        <div className="text-center py-6 border border-dashed border-zinc-800 rounded-lg text-zinc-500 text-sm">
+                                            No risks found near this route.
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {routeRisks.map((risk: RouteRiskPoint) => (
+                                                <div key={risk.id} className="rounded-lg border border-zinc-800 bg-zinc-900/20 p-3">
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <div className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">
+                                                            {risk.type.replace(/-/g, ' ')}
+                                                        </div>
+                                                        {typeof risk.severity === 'number' && (
+                                                            <div className="text-[10px] text-zinc-500 bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800 font-mono">
+                                                                {risk.severity}%
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {risk.category && (
+                                                        <div className="mt-1 text-xs text-zinc-300">{risk.category}</div>
+                                                    )}
+
+                                                    <div className="mt-2 text-[10px] text-zinc-600 font-mono">
+                                                        {risk.lat.toFixed(4)}, {risk.lon.toFixed(4)}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     ) : (
                         <>
@@ -691,7 +777,7 @@ export default function ShippingRoutePanel({
                                         className="flex h-9 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
                                         placeholder="e.g. Trans-Atlantic Pharma"
                                         value={routeName}
-                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRouteName(e.target.value)}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setRouteName(e.target.value)}
                                     />
                                 </div>
                             </div>
@@ -712,7 +798,7 @@ export default function ShippingRoutePanel({
                                         className="flex h-9 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
                                         placeholder="e.g. Electronics"
                                         value={goodsType}
-                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGoodsType(e.target.value)}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setGoodsType(e.target.value)}
                                     />
                                 </div>
                             </div>
